@@ -1,0 +1,114 @@
+/* Filas de canciones, tarjetas/cuadricula, titulos */
+.row{display:grid;grid-template-columns:42px 1fr 1fr 34px;gap:12px;align-items:center;padding:7px 10px;border-radius:14px;cursor:pointer;content-visibility:auto;contain-intrinsic-size:auto 56px}
+.row:hover{background:var(--gl)}.row.pl{background:color-mix(in srgb,var(--acc) 18%,transparent)}
+.row b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row span{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font:900 18px var(--ft);color:#26123f;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.fv{opacity:.35;font-size:17px}.fv.on{opacity:1;color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.card{padding:12px;border-radius:20px;background:var(--gl);border:1px solid var(--ed);cursor:pointer;transition:transform .25s}
+.card:hover{transform:translateY(-4px)}.card .th{width:100%;height:auto;aspect-ratio:1;border-radius:14px;font-size:44px;margin-bottom:10px}
+.card b,.card span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card span{color:var(--dim);font-size:12px}
+h2{font:900 22px var(--ft);margin:10px 0 14px}
+/* Boton borrar dentro del dialog Editar */
+.del-btn{color:#ff8a9a !important;border-color:#5a2330 !important;font-weight:600}
+.del-btn:hover{color:#fff !important;background:#a01830 !important;border-color:#c01a3a !important}
+
+/* ========================================================== */
+/* BUSCADOR CON CRISTAL TINTADO DEL COLOR DEL BANNER          */
+/* ========================================================== */
+
+/* Input principal: fondo del color del banner (15% de opacidad) */
+.top input[type="search"], #s {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(0, 0, 0, 0.3)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 99px !important;
+  color: var(--ink) !important;
+  padding: 12px 20px !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Al escribir: se ilumina más con el color del banner */
+.top input[type="search"]:focus, #s:focus {
+  background: color-mix(in srgb, var(--acc) 25%, rgba(0, 0, 0, 0.3)) !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 25%, transparent), inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+}
+
+/* Selectores (Título, Todo) con el mismo efecto de cristal tintado */
+.top select {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(0, 0, 0, 0.3)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, rgba(255, 255, 255, 0.1)) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.top select:focus {
+  background: color-mix(in srgb, var(--acc) 25%, rgba(0, 0, 0, 0.3)) !important;
+  border-color: var(--acc) !important;
+}
+
+/* Mantener la X bonita y blanca */
+.top input[type="search"]::-webkit-search-cancel-button, #s::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' opacity='0.7'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>") no-repeat center;
+  background-size: contain;
+  cursor: pointer;
+}
+
+
+/* ========================================================== */
+/* BUSCADOR Y SELECTORES CON EFECTO CRISTAL REAL              */
+/* ========================================================== */
+
+/* Buscador principal: fondo más claro y brillante */
+.top input[type="search"], #s {
+  background: color-mix(in srgb, var(--acc) 30%, rgba(20, 15, 30, 0.7)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent) !important;
+  border-radius: 99px !important;
+  color: #fff !important;
+  padding: 12px 20px !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Brillo al hacer clic */
+.top input[type="search"]:focus, #s:focus {
+  background: color-mix(in srgb, var(--acc) 45%, rgba(20, 15, 30, 0.8)) !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 30%, transparent), inset 0 2px 6px rgba(0,0,0,0.4) !important;
+  outline: none !important;
+}
+
+/* Selectores (Título, Todo): mismo efecto cristal */
+.top select {
+  background: color-mix(in srgb, var(--acc) 30%, rgba(20, 15, 30, 0.7)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent) !important;
+  color: #fff !important;
+  border-radius: 99px !important;
+  padding: 12px 35px 12px 20px !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.2) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  /* Flecha blanca personalizada */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 15px top 50% !important;
+  background-size: 12px auto !important;
+}
+
+.top select:focus {
+  background: color-mix(in srgb, var(--acc) 45%, rgba(20, 15, 30, 0.8)) !important;
+  border-color: var(--acc) !important;
+  outline: none !important;
+}

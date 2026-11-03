@@ -1,0 +1,11 @@
+/* Karaoke: estilo de las lineas de la letra (kro/ktr/kor) y estados */
+#kara .kbody{flex:1;overflow-y:auto;padding:20px 0;text-align:center;scroll-behavior:smooth}
+#kara .kln{padding:14px 8px;cursor:pointer;border-radius:12px;transition:background .2s}
+#kara .kln:hover{background:rgba(255,255,255,.05)}
+#kara .kro{color:var(--dim);opacity:.5;font-size:.9em;line-height:1.35;transition:color .3s,opacity .3s}
+#kara .ktr{color:var(--ink);font-size:1.35em;line-height:1.5;margin:4px 0;font-weight:500;transition:color .3s,transform .3s}
+#kara .kor{color:var(--dim);opacity:.45;font-size:.95em;line-height:1.35;transition:color .3s,opacity .3s}
+#kara .kln.now .kro,#kara .kln.now .kor{color:var(--acc);opacity:.95}
+#kara .kln.now .ktr{color:var(--acc);font-weight:800;transform:scale(1.08)}
+#kara .kln.now{background:color-mix(in srgb,var(--acc) 12%,transparent)}
+#kara .kempty{color:var(--dim);text-align:center;padding:60px 20px;font-size:15px}

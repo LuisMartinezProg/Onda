@@ -1,0 +1,54 @@
+/* Selector de perfil */
+#ppick{position:fixed;inset:0;z-index:9999;background:radial-gradient(60% 40% at 10% 0,color-mix(in srgb,var(--acc) 30%,transparent),transparent 70%),radial-gradient(50% 40% at 100% 60%,color-mix(in srgb,var(--acc2) 22%,transparent),transparent 70%),linear-gradient(var(--bg2),var(--bg));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:40px}
+#ppick h1{font:900 52px var(--ft);background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}#ppick h2{font:600 20px var(--ft);color:var(--dim);margin:0}#ppick .avatar{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font:900 34px var(--ft);color:#26123f;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+#ppick .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;max-width:720px;width:100%}
+#ppick .card{padding:20px 16px;border-radius:18px;background:var(--gl);border:1px solid var(--ed);cursor:pointer;text-align:center;font-weight:700;transition:transform .2s,border-color .2s;display:flex;flex-direction:column;align-items:center;gap:10px}
+#ppick .card:hover{transform:translateY(-3px);border-color:var(--acc)}
+#ppick .newrow{display:flex;gap:8px;max-width:400px;width:100%}
+#ppick .newrow input{flex:1;background:var(--gl);border:1px solid var(--ed);border-radius:99px;color:var(--ink);padding:10px 18px;font:inherit}
+#ppick .newrow button{padding:10px 20px;border-radius:99px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#26123f;font-weight:800;cursor:pointer}
+
+/* ========================================================== */
+/* AJUSTES DEL MENÚ DE PERFILES (Centrado + Color de Acento)  */
+/* ========================================================== */
+
+/* Centrar las tarjetas de perfil en la pantalla */
+#ppick .grid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 20px !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+}
+
+/* Dar color de acento al fondo de las tarjetas */
+#ppick .card {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(20, 15, 30, 0.6)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 40%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+  min-width: 160px !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Efecto al pasar el mouse */
+#ppick .card:hover {
+  background: color-mix(in srgb, var(--acc) 25%, rgba(20, 15, 30, 0.8)) !important;
+  border-color: var(--acc) !important;
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 15px 40px color-mix(in srgb, var(--acc) 20%, transparent) !important;
+}
+
+/* Mantener el logo/avatar con buen contraste */
+#ppick .avatar {
+  background: var(--acc) !important;
+  color: #140e24 !important; /* Texto oscuro para que se lea bien */
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--acc) 40%, transparent) !important;
+}
+
+/* El título "Onda" se mantiene con su gradiente original intacto */
+#ppick h1 {
+  /* No sobreescribimos nada aquí para mantener el logo intacto */
+}

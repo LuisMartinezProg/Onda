@@ -1,0 +1,190 @@
+/* Variables, reset, fondo y botones base */
+:root{--h:330;--acc:hsl(var(--h) 90% 70%);--acc2:hsl(calc(var(--h) + 40) 95% 72%);--bg:#140e24;--bg2:#1f1538;--ink:#f6f1ff;--dim:rgba(246,241,255,.55);--gl:rgba(255,255,255,.07);--ed:rgba(255,255,255,.13);--fu:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;--ft:"Yu Gothic UI","Meiryo UI","Segoe UI",system-ui,sans-serif}
+body.amo{--bg:#000;--bg2:#0a0a0f}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:radial-gradient(60% 40% at 10% 0,color-mix(in srgb,var(--acc) 30%,transparent),transparent 70%),radial-gradient(50% 40% at 100% 60%,color-mix(in srgb,var(--acc2) 22%,transparent),transparent 70%),linear-gradient(var(--bg2),var(--bg));background-attachment:fixed;color:var(--ink);font:400 14px var(--fu);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+
+/* ========================================================== */
+/* MODERN UI: Scrollbars, Inputs y Botones (Estilo App Nativa) */
+/* ========================================================== */
+
+/* 1. Scrollbars oscuras y elegantes (Adiós al blanco feo) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+/* 2. Inputs, Selects y Cajas de texto modernas */
+input, select, textarea {
+  outline: none !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--ink) !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--acc) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 20%, transparent) !important;
+}
+
+/* 3. Menús desplegables (Select) sin fondo blanco de Windows */
+select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px top 50% !important;
+  background-size: 10px auto !important;
+  padding-right: 32px !important;
+  cursor: pointer;
+}
+select option {
+  background: #1a1525 !important; /* Fondo oscuro para las opciones */
+  color: #fff !important;
+}
+
+/* 4. Botones con transiciones suaves */
+button {
+  transition: transform 0.1s ease, background 0.2s ease, border-color 0.2s ease !important;
+}
+button:active {
+  transform: scale(0.95) !important;
+}
+
+/* 5. Barras de progreso (Volumen y Canción) modernas */
+input[type=range] {
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--acc);
+  margin-top: -4px;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--acc);
+}
+
+/* 6. Videos del Karaoke con bordes redondeados y sombra */
+#k-video-holder webview, #kv-frame iframe {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+
+/* ========================================================== */
+/* ELIMINAR BORDES BLANCOS (FOCUS RING) Y ESTILIZAR INPUTS     */
+/* ========================================================== */
+
+/* Matar el anillo blanco de Windows/Chromium al hacer clic */
+*:focus, *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Estilo para el selector de archivos (Añadir carpeta, Imagen, etc.) */
+input[type="file"] {
+  color: var(--dim) !important;
+  padding: 8px !important;
+}
+input[type="file"]::file-selector-button {
+  background: var(--gl) !important;
+  border: 1px solid var(--ed) !important;
+  color: var(--ink) !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  margin-right: 12px;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--acc) !important;
+  color: #000 !important;
+  border-color: var(--acc) !important;
+}
+
+/* Estilo para el selector de color */
+input[type="color"] {
+  padding: 2px !important;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 10px !important;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 8px;
+}
+
+
+/* ========================================================== */
+/* FORZAR TIPOGRAFÍA GLOBAL (Ignorar reglas anteriores)       */
+/* ========================================================== */
+html, body, div, span, h1, h2, h3, p, a, b, strong, button, input, select, textarea, label, option {
+  font-family: var(--ft), sans-serif !important;
+}
+
+
+/* ========================================================== */
+/* GLOW REACTIVO EN LOS BORDES (Se activa en Ajustes)         */
+/* ========================================================== */
+#edge-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0; /* Oculto por defecto en toda la app */
+  transition: opacity 0.5s ease;
+  box-shadow: inset 0 0 calc(20px + var(--beat, 0) * 80px) var(--song-acc, transparent);
+}
+
+
+/* ========================================================== */
+/* FONDO TINTADO CON EL COLOR DEL BANNER                      */
+/* ========================================================== */
+body {
+  background: 
+    radial-gradient(60% 40% at 10% 0%, color-mix(in srgb, var(--acc) 25%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 100% 60%, color-mix(in srgb, var(--acc2) 18%, transparent), transparent 70%),
+    linear-gradient(var(--bg2), var(--bg)) !important;
+  background-attachment: fixed !important;
+}

@@ -1,0 +1,5 @@
+/* Vista: Sonido (ecualizador y efectos) */
+function viewSound(v){
+  v.innerHTML=`<h2>Sonido</h2><div class="pre">${Object.keys(PRE).map(k=>`<button data-p="${k}">${k}</button>`).join('')}</div><div class="eq">${FQ.map((f,i)=>`<label><input type="range" min="-12" max="12" step=".5" value="${S.eq[i]}" data-e="${i}" aria-label="${f} Hz">${f}</label>`).join('')}</div>
+ <div class="ctl">Sonido amplio<input type="range" min="0" max="2.5" step=".05" value="${S.wid}" data-k="wid"><span>${S.wid}×</span></div><div class="ctl">Refuerzo de graves<input type="range" min="0" max="12" step=".5" value="${S.bass}" data-k="bass"><span>${S.bass} dB</span></div><div class="ctl">Normalizar volumen<input type="range" min="0" max="1" step=".05" value="${S.norm||1}" data-k="norm"><span>${Math.round((S.norm||1)*100)}%</span></div><div class="ctl">Fade entre canciones<input type="range" min="0" max="8" step=".5" value="${S.fade||2}" data-k="fade"><span>${S.fade||2}s</span></div><div class="ctl">Preamplificación<input type="range" min=".3" max="1.5" step=".05" value="${S.pre}" data-k="pre"><span>${S.pre}×</span></div>`;
+}

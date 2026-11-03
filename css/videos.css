@@ -1,0 +1,995 @@
+
+/* ========================================================== */
+/* ESTILOS DE LA BIBLIOTECA DE VIDEOS                         */
+/* ========================================================== */
+
+.vid-list {
+  overflow-y: auto;
+  background: rgba(255,255,255,0.02);
+  border-radius: 16px;
+  padding: 8px;
+  border: 1px solid var(--ed);
+  scrollbar-width: thin;
+}
+
+
+.vid-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--dim);
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+}
+.vid-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  align-items: center;
+  border: 1px solid transparent;
+}
+.vid-row:hover {
+  background: var(--gl);
+  transform: translateX(2px);
+}
+.vid-row.on {
+  background: color-mix(in srgb, var(--acc) 20%, transparent);
+  border-color: var(--acc);
+}
+.vid-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--acc) 20%, rgba(0,0,0,0.4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent);
+}
+.vid-info {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+.vid-info b {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+.vid-info span {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+@media (max-width: 900px) {
+  
+}
+
+/* ========================================================== */
+/* FIX TAMAÑO DEL REPRODUCTOR Y ESTABILIDAD DEL <VIDEO>       */
+/* ========================================================== */
+
+
+
+
+
+
+/* ========================================================== */
+/* TAMAÑO DEFINITIVO DEL REPRODUCTOR                          */
+/* ========================================================== */
+
+
+
+
+
+
+
+/* Lista alineada al mismo alto que el reproductor */
+.vid-list {
+  max-height: 405px !important;
+  overflow-y: auto !important;
+  align-self: start !important;
+}
+
+/* ========================================================== */
+/* DESCARGADOR DE VIDEOS (Barra superior)                     */
+/* ========================================================== */
+.vid-downloader {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.vid-downloader input {
+  flex: 1;
+  min-width: 200px;
+  background: color-mix(in srgb, var(--acc) 15%, rgba(20, 15, 30, 0.5)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 40%, rgba(255,255,255,0.15)) !important;
+  border-radius: 99px !important;
+  color: var(--ink) !important;
+  padding: 11px 18px !important;
+  font-size: 13px !important;
+}
+.vid-downloader select {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(20, 15, 30, 0.5)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 40%, rgba(255,255,255,0.15)) !important;
+  color: var(--ink) !important;
+  border-radius: 99px !important;
+  padding: 11px 16px !important;
+  font-size: 13px !important;
+  cursor: pointer;
+}
+.vid-downloader .dl-main {
+  white-space: nowrap;
+}
+
+/* Barra de progreso en la lista */
+.vid-dl {
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent);
+}
+.vid-bar {
+  margin-top: 6px;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.vid-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--acc), var(--acc2));
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+.vid-cancel {
+  background: rgba(255,80,80,0.15);
+  color: #ff8080;
+  border: 1px solid rgba(255,80,80,0.3);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.vid-cancel:hover {
+  background: rgba(255,80,80,0.3);
+  color: #fff;
+}
+
+
+/* ========================================================== */
+/* GALERIA DE RESULTADOS DE BUSQUEDA                          */
+/* ========================================================== */
+.vid-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--dim);
+}
+.vid-spinner {
+  width: 30px;
+  height: 30px;
+  margin: 20px auto;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--acc);
+  border-radius: 50%;
+  animation: vidSpin 0.8s linear infinite;
+}
+@keyframes vidSpin { to { transform: rotate(360deg); } }
+.vid-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 4px;
+}
+.vid-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--ed);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  position: relative;
+}
+.vid-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--acc);
+}
+.vid-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-size: cover;
+  background-position: center;
+  background-color: #000;
+  position: relative;
+}
+.vid-dur {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.vid-card-info {
+  padding: 8px;
+  flex: 1;
+  overflow: hidden;
+}
+.vid-card-info b {
+  display: block;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.vid-card-info span {
+  display: block;
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vid-card-dl {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--acc);
+  color: #000;
+  border: 2px solid #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
+  opacity: 0;
+}
+.vid-card:hover .vid-card-dl { opacity: 1; }
+.vid-card-dl:hover { transform: scale(1.15); }
+
+/* ========================================================== */
+/* TOAST DE DESCARGA COMPLETADA                               */
+/* ========================================================== */
+.dl-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #1a1525;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px color-mix(in srgb, var(--acc) 30%, transparent);
+  z-index: 999999;
+  transform: translateY(120px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2), opacity 0.3s;
+  max-width: 320px;
+}
+.dl-toast.on {
+  transform: translateY(0);
+  opacity: 1;
+}
+.dl-toast-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.dl-toast-info {
+  flex: 1;
+  min-width: 0;
+}
+.dl-toast-info b {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.dl-toast-info span {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Modal de preview YouTube */
+
+
+.yt-preview-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);}
+
+
+.yt-preview-close:hover{transform:scale(1.1);background:rgba(255,80,80,0.9);}
+.vid-card-play{position:absolute;top:6px;left:6px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.75);color:#fff;border:2px solid #fff;font-size:12px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;z-index:5;padding-left:2px;}
+.vid-card:hover .vid-card-play{opacity:1;}
+.vid-card-play:hover{transform:scale(1.15);background:var(--acc);color:#000;}
+.dl-res-prev{position:absolute;top:6px;left:6px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,0.75);color:#fff;border:2px solid #fff;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;z-index:5;padding-left:2px;}
+.dl-res:hover .dl-res-prev{opacity:1;}
+.dl-res-prev:hover{transform:scale(1.15);background:var(--acc);color:#000;}
+.dl-res-thumb{position:relative;}
+
+
+/* Modal de preview - version corregida */
+
+
+
+
+/* ========================================================== */
+/* MODAL DE PREVIEW - VERSION COMPACTA CON WEBVIEW            */
+/* ========================================================== */
+
+
+
+
+.yt-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Ventana compacta - 720x405 max (16:9) */
+.yt-preview-content {
+  position: relative;
+  width: min(90vw, 720px);
+  aspect-ratio: 16 / 9;
+  max-height: 85vh;
+  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.95), 0 0 25px color-mix(in srgb, var(--acc) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, rgba(255,255,255,0.15));
+  transform: scale(0.85);
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+
+.yt-preview-frame {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+}
+.yt-preview-frame iframe,
+.yt-preview-frame webview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
+}
+
+.yt-preview-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.4);
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+.yt-preview-close:hover {
+  transform: scale(1.1);
+  background: rgba(255,60,60,0.9);
+  border-color: #fff;
+}
+
+
+/* ========================================================== */
+/* PREVIEW INTEGRADO EN EL REPRODUCIRDOR DERECHO              */
+/* ========================================================== */
+
+
+
+.yt-player-wrap iframe,
+
+
+.yt-player-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.5);
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+  backdrop-filter: blur(8px);
+}
+.yt-player-close:hover {
+  transform: scale(1.1);
+  background: rgba(255,60,60,0.95);
+  border-color: #fff;
+}
+
+/* Marcar la tarjeta que esta reproduciendose */
+.vid-card.playing {
+  border-color: var(--acc);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--acc) 60%, transparent);
+}
+
+.vid-card.playing::after {
+  content: '▶ Reproduciendo';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: var(--acc);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  z-index: 6;
+}
+
+
+/* ========================================================== */
+/* AVISO DE "NO DESCARGADO" EN EL PREVIEW                     */
+/* ========================================================== */
+
+
+
+
+
+
+
+.yt-preview-dl {
+  pointer-events: auto;
+  background: var(--acc);
+  color: #000;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 16px;
+  border-radius: 99px;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  transition: transform 0.2s, filter 0.2s;
+  margin-left: auto;
+}
+.yt-preview-dl:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+.yt-preview-dl:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.yt-player-close {
+  pointer-events: auto;
+}
+
+/* Ajustar el boton de cerrar para que no se superponga con el banner */
+.yt-player-wrap .yt-player-close {
+  position: absolute;
+  top: auto;
+  bottom: 10px;
+  right: 10px;
+}
+
+/* ========================================================== */
+/* BADGE "SIN DESCARGAR" EN LAS TARJETAS DE LA GALERIA        */
+/* ========================================================== */
+.vid-card:not(.playing) .vid-thumb::after {
+  content: 'No descargado';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255, 165, 0, 0.9);
+  color: #000;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 3;
+  letter-spacing: 0.3px;
+}
+
+
+/* Botones de accion del preview (arriba derecha) */
+.yt-preview-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+.yt-preview-dl {
+  background: var(--acc);
+  color: #000;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 16px;
+  border-radius: 99px;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  transition: transform 0.2s, filter 0.2s;
+}
+.yt-preview-dl:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+.yt-preview-dl:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.yt-preview-actions .yt-player-close {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
+
+/* ========================================================== */
+/* BOTON BORRAR VIDEO                                         */
+/* ========================================================== */
+.vid-row .vid-del {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff8080;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  opacity: 0;
+}
+.vid-row:hover .vid-del {
+  opacity: 1;
+}
+.vid-row .vid-del:hover {
+  background: rgba(255, 80, 80, 0.5);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* ========================================================== */
+/* OVERLAY DE ERROR EN EL PREVIEW                             */
+/* ========================================================== */
+.yt-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+  padding: 20px;
+  text-align: center;
+}
+.yt-error-content {
+  max-width: 400px;
+}
+.yt-error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.yt-error-content h3 {
+  font-size: 16px;
+  color: var(--ink);
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+.yt-error-content p {
+  font-size: 13px;
+  color: var(--dim);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+.yt-error-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.yt-error-btn {
+  padding: 10px 18px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid;
+  transition: all 0.2s;
+}
+.yt-error-open {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.yt-error-open:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+.yt-error-dl {
+  background: var(--acc);
+  color: #000;
+  border-color: var(--acc);
+}
+.yt-error-dl:hover {
+  filter: brightness(1.1);
+  transform: scale(1.03);
+}
+.yt-error-dl:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* Boton "YT" siempre visible */
+.yt-preview-open-yt {
+  background: rgba(255, 0, 0, 0.9);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 12px;
+  border-radius: 99px;
+  border: 2px solid #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  transition: transform 0.2s;
+}
+.yt-preview-open-yt:hover {
+  transform: scale(1.05);
+  background: #ff0000;
+}
+
+/* Error overlay amigable */
+.yt-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 50;
+  padding: 20px;
+  text-align: center;
+}
+.yt-error-content {
+  max-width: 420px;
+}
+.yt-error-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+.yt-error-content h3 {
+  font-size: 17px;
+  color: var(--ink);
+  margin: 0 0 12px 0;
+  font-weight: 700;
+}
+.yt-error-content p {
+  font-size: 13px;
+  color: var(--dim);
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+.yt-error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.yt-error-btn {
+  padding: 12px 22px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid;
+  transition: all 0.2s;
+}
+.yt-error-open {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.yt-error-open:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+.yt-error-dl {
+  background: var(--acc);
+  color: #000;
+  border-color: var(--acc);
+}
+.yt-error-dl:hover {
+  filter: brightness(1.1);
+  transform: scale(1.03);
+}
+.yt-error-dl:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* ========================================================== */
+/* CONTENEDOR DEL VIDEO: 16:9 EXACTO SIN DESBORDES            */
+/* ========================================================== */
+.vid-layout {
+  display: grid !important;
+  grid-template-columns: 320px minmax(0, 1fr) !important;
+  gap: 16px !important;
+  align-items: start !important;
+  max-width: 100% !important;
+  margin-top: 10px !important;
+}
+
+.vid-list {
+  max-height: 500px !important;
+  overflow-y: auto !important;
+  align-self: start !important;
+}
+
+
+
+.vid-player webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  border: 0 !important;
+}
+
+
+
+
+/* ========================================================== */
+/* REPRODUCTOR DE VIDEO: TAMAÑO CORREGIDO                     */
+/* ========================================================== */
+
+
+.vid-player webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+}
+
+
+/* ========================================================== */
+/* CONTENEDOR DEL REPRODUCTOR (16:9 SIN FRANJAS)              */
+/* ========================================================== */
+
+
+
+
+
+
+
+/* ========================================================== */
+/* REPRODUCTOR DE VIDEO: TAMAÑO CORREGIDO (LLENA EL PANEL)    */
+/* ========================================================== */
+
+
+
+
+
+
+/* Asegurar que el video nativo también llene el espacio */
+
+/* ========================================================== */
+/* REPRODUCTOR DE VIDEO: TAMAÑO CORREGIDO (LLENA EL PANEL)    */
+/* ========================================================== */
+
+
+
+
+
+
+/* Asegurar que el video nativo también llene el espacio */
+
+/* ========================================================== */
+/* REPRODUCTOR DE VIDEO: TAMAÑO CORREGIDO (LLENA EL PANEL)    */
+/* ========================================================== */
+
+
+
+
+.yt-player-wrap webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  display: block !important; /* Asegura que no sea inline */
+}
+
+/* Asegurar que el video nativo también llene el espacio */
+.vid-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  outline: none !important;
+  background: #000 !important;
+  display: block !important;
+}
+
+.yt-player-wrap webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  display: block !important;
+}
+/* ========================================================== */
+/* CONTENEDOR DEL REPRODUCTOR: TAMAÑO EXACTO 16:9             */
+/* ========================================================== */
+
+
+
+
+.yt-player-wrap webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  display: block !important;
+}
+
+.vid-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  outline: none !important;
+  background: #000 !important;
+  display: block !important;
+}
+/* ========================================================== */
+/* REPRODUCTOR ADAPTADO (Deja que YouTube se vea normal)      */
+/* ========================================================== */
+
+
+
+
+.yt-player-wrap webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  display: block !important;
+}
+
+.vid-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  outline: none !important;
+  background: #000 !important;
+  display: block !important;
+}
+/* ========================================================== */
+/* REPRODUCTOR ADAPTADO (Deja que YouTube se vea normal)      */
+/* ========================================================== */
+.vid-player {
+  position: relative !important;
+  aspect-ratio: 16 / 9 !important;
+  width: 100% !important;
+  max-width: 800px !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
+  overflow: hidden !important;
+  background: #000 !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--ed) !important;
+}
+
+.yt-player-wrap {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: #000 !important;
+  border-radius: inherit !important;
+  overflow: hidden !important;
+}
+
+.yt-player-wrap webview {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  display: block !important;
+}
+
+.vid-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  outline: none !important;
+  background: #000 !important;
+  display: block !important;
+}
+/* Boton borrar en descargas canceladas */
+.vid-row .vid-del[data-vid-del] {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff8080;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.vid-row .vid-del[data-vid-del]:hover {
+  background: rgba(255, 80, 80, 0.5);
+  color: #fff;
+  transform: scale(1.1);
+}

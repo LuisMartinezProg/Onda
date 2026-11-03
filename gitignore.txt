@@ -1,0 +1,10 @@
+node_modules/
+dist/
+vendor/yt-dlp.exe
+vendor/ffmpeg.exe
+vendor/ffprobe.exe
+compilacion.log
+*.bak
+*.bak-*
+_backup-*/
+deepseek_js_*.js

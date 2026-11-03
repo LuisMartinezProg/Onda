@@ -1,0 +1,232 @@
+/* Panel derecho: caratula, cola, botones, barra de progreso, media queries */
+.cv{background:center/cover var(--cv,none) no-repeat,linear-gradient(135deg,var(--acc),var(--acc2))}
+.now{display:flex;flex-direction:column;align-items:center;gap:0;width:100%;cursor:default}
+.now .cv{opacity:0;transform:scale(.94);max-height:0;margin:0;transition:opacity .35s ease,transform .35s ease,max-height .35s ease,margin .35s ease}
+.now.sh .cv{opacity:1;transform:scale(1);max-height:260px;margin-bottom:4px}
+.now.qopen .cv{opacity:0;transform:scale(.94);max-height:0;margin:0}
+.ibar{display:flex;gap:8px;justify-content:center;margin-top:6px}
+.ib{width:36px;height:36px;border-radius:50%;background:var(--gl);border:1px solid var(--ed);font-size:15px;color:var(--ink)}
+.ib.on{background:color-mix(in srgb,var(--acc) 30%,transparent);border-color:var(--acc)}
+.ib[data-i=fav].on{color:#ff5a7a}
+#ipn:empty{display:none}
+#ipn{width:100%;background:rgba(0,0,0,.18);border-radius:16px;padding:12px;margin-top:2px}
+#ipn .ctl{grid-template-columns:1fr;gap:4px;margin:0 0 10px}#ipn .ctl span{display:none}#ipn select{width:100%}
+#ipn .pre{justify-content:center}
+.qlist{display:flex;flex-direction:column;gap:2px;max-height:260px;overflow-y:auto}
+.qrow{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;font-size:12px;cursor:pointer}
+.qrow:hover{background:var(--gl)}.qrow.on{color:var(--acc);font-weight:700}
+.qrow span:first-child{color:var(--dim);width:18px}
+.qrow b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .al{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.now b,.now span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.now span{color:var(--dim);font-size:12px}
+.mid{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.btns{display:flex;align-items:center;gap:12px}.btns button{width:34px;height:34px;border-radius:50%;font-size:16px}.btns .pp{width:48px;height:48px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#26123f;font-size:19px}
+.btns button.on{color:var(--acc)}
+.sk{display:grid;grid-template-columns:38px 1fr 38px;gap:8px;width:100%;font-size:11px;color:var(--dim);align-items:center}
+.vol{display:flex;gap:8px;justify-content:center;align-items:center}.vol input{width:110px}
+.wrap.np-on #np{flex-direction:column;align-items:center;gap:12px;padding:20px;overflow-y:auto;scrollbar-width:thin;border-left:1px solid var(--ed);background:rgba(10,6,20,.3);min-height:0;width:330px}
+#np .cv{width:min(100%,250px);aspect-ratio:1;border-radius:24px;box-shadow:0 20px 50px -15px color-mix(in srgb,var(--acc) 55%,transparent);animation:fl 6s ease-in-out infinite}
+body.pause #np .cv,body.eco #np .cv{animation:none}
+@keyframes fl{50%{transform:translateY(-6px) scale(1.01)}}
+#np h3{font:900 20px var(--ft);text-align:center}#np p{color:var(--dim);text-align:center;font-size:12px}
+#vz{width:100%;height:60px}
+@media(max-width:760px){#app{grid-template-columns:1fr}.side{grid-row:1;flex-direction:row;overflow-x:auto;padding:10px;border:0}.side h1,#st{display:none}.side button{white-space:nowrap}.side .add{margin:0 0 0 auto}main{grid-template-rows:60px 1fr}.wrap{grid-template-columns:1fr}#np{border-left:0;border-top:1px solid var(--ed)}.row{grid-template-columns:42px 1fr 34px 34px}.eq{height:150px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+
+/* ========================================================== */
+/* LAYOUT MEJORADO: Estilo reproductor unificado (tipo Spotify) */
+/* ========================================================== */
+.wrap.np-on #np {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;         /* NO scroll en el panel entero */
+  padding: 16px 16px 12px;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* Caratula adaptable al alto de la ventana */
+#np .now { flex-shrink: 0; }
+#np .now .cv {
+  width: min(100%, 220px) !important;
+  max-height: 30vh !important;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px -12px color-mix(in srgb,var(--acc) 55%,transparent);
+}
+@media (max-height: 750px) {
+  #np .now .cv { width: min(100%, 160px) !important; max-height: 22vh !important; }
+}
+
+/* Titulo y artista */
+#bt { font-size: 15px; margin-top: 6px; }
+#ba { font-size: 11px; }
+
+/* Header de botones (Español / Original / Karaoke) */
+#lyr-hd { flex-shrink: 0; }
+
+/* Letra: este es el UNICO elemento que scrollea */
+#lyr {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  padding: 4px 0;
+}
+
+/* Visualizador compacto */
+#vz { flex-shrink: 0; height: 44px !important; }
+
+/* Controles (botones play, barra de progreso, volumen) */
+.mid { flex-shrink: 0; gap: 6px; }
+.btns .pp { width: 42px !important; height: 42px !important; font-size: 17px !important; }
+.btns button { width: 30px !important; height: 30px !important; font-size: 14px !important; }
+.sk { font-size: 10px; }
+.vol { display: none; }  /* Ocultar volumen: ahora vive en la barra izq o en ajustes */
+
+/* Barra de iconos (fav, cola, etc.) */
+.ibar { flex-shrink: 0; margin-top: 2px; gap: 6px; }
+.ib { width: 32px !important; height: 32px !important; font-size: 13px !important; }
+
+/* Panel de cola expandible */
+#ipn { flex-shrink: 0; max-height: 40vh; overflow-y: auto; margin-top: 0; }
+
+
+
+
+
+/* ========================================================== */
+/* ARREGLO DEFINITIVO DEL REPRODUCTOR (BOTONES Y LAYOUT)      */
+/* ========================================================== */
+
+/* Forzar al panel derecho a ser una columna estricta */
+.wrap.np-on #np {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding: 16px 16px 12px !important;
+  gap: 8px !important;
+  overflow: hidden !important; /* NO scroll global */
+}
+
+/* Carátula y título: tamaño fijo, no se encogen */
+#nw {
+  flex-shrink: 0 !important;
+}
+
+/* Los botones de la letra (Español/Original) tampoco se encogen */
+#lyr-hd {
+  flex-shrink: 0 !important;
+}
+
+/* El cuadro de la letra: ocupa todo el espacio disponible y hace scroll interno */
+#lyr {
+  flex: 1 1 0 !important;
+  min-height: 50px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  margin: 4px 0;
+}
+
+/* El visualizador de barras: tamaño fijo */
+#vz {
+  flex-shrink: 0 !important;
+  height: 48px !important;
+  margin-bottom: 4px;
+}
+
+/* Controles centrales (Play, Pause, etc.): tamaño garantizado */
+.mid {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+
+/* Botones de reproducción */
+.btns {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-bottom: 4px;
+}
+.btns button {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 16px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+.btns .pp {
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 20px !important;
+  background: var(--acc) !important;
+  color: #000 !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+}
+
+/* Barra de progreso */
+.sk {
+  width: 100% !important;
+  padding: 0 8px !important;
+}
+.vol {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: center !important;
+  margin-top: 4px;
+}
+
+/* Iconos inferiores (Fav, Cola, etc.) */
+.ibar {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.ib {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 14px !important;
+}
+
+
+/* ========================================================== */
+/* BARRA PARA BAJAR EN EL PANEL DERECHO (PORTADA Y LETRA)     */
+/* ========================================================== */
+
+/* Permitir el scroll vertical en todo el panel derecho */
+.wrap.np-on #np {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Quitar el scroll interno de la letra para que no salgan dos barras seguidas */
+.wrap.np-on #np #lyr {
+  overflow-y: visible !important;
+  flex: none !important;
+  max-height: none !important;
+}
+
+/* Asegurar que el visualizador y los controles no se estiren raro al hacer scroll */
+#np .mid, #np .ibar, #np #vz {
+  flex-shrink: 0 !important;
+}
+
+/* ========================================================== */
+/* Ocultar el boton "+" del reproductor (temporalmente)        */
+/* ========================================================== */
+#np .ib[data-i="add"] {
+  display: none !important;
+}
