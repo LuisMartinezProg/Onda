@@ -1,0 +1,58 @@
+name: Compilar y publicar Onda
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: onda-windows
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Descargar yt-dlp y ffmpeg para la carpeta vendor
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          New-Item -ItemType Directory -Force -Path vendor | Out-Null
+          if (-not (Test-Path vendor/yt-dlp.exe)) {
+            Invoke-WebRequest -Uri https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe -OutFile vendor/yt-dlp.exe
+          }
+          if (-not ((Test-Path vendor/ffmpeg.exe) -and (Test-Path vendor/ffprobe.exe))) {
+            Invoke-WebRequest -Uri https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip -OutFile ffmpeg.zip
+            Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg-tmp
+            Copy-Item ffmpeg-tmp/*/bin/ffmpeg.exe vendor/
+            Copy-Item ffmpeg-tmp/*/bin/ffprobe.exe vendor/
+          }
+
+      - name: Poner numero de version automatico
+        shell: bash
+        run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
+      - name: Compilar y publicar en Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win nsis --publish always -c.publish.provider=github -c.publish.owner=${{ github.repository_owner }} -c.publish.repo=${{ github.event.repository.name }} -c.publish.releaseType=release
+
+      - name: Resumen
+        shell: bash
+        run: echo "Descarga el instalador en https://github.com/${{ github.repository }}/releases/latest" >> "$GITHUB_STEP_SUMMARY"

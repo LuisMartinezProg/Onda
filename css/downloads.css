@@ -8,6 +8,29 @@
 .dl-aux{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .dl-chip{padding:7px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--ed);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;transition:border-color .15s}
 .dl-chip:hover{border-color:var(--acc)}
+
+/* === PANEL BASE PARA EL HISTORIAL === */
+.dl-base-panel {
+  width: 100%;
+  margin: 24px 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  box-sizing: border-box;
+  backdrop-filter: blur(10px);
+}
+.dl-base-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 1px;
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding-bottom: 8px;
+}
+
 .dl-tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--ed);padding-bottom:10px}
 .dl-tabs button{padding:7px 16px;border-radius:99px;background:transparent;border:1px solid transparent;color:var(--dim);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
 .dl-tabs button:hover{color:var(--ink)}
@@ -24,11 +47,11 @@
 .dl-btn{width:32px;height:32px;border-radius:50%;background:var(--gl);border:1px solid var(--ed);color:var(--ink);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .dl-btn:hover{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 15%,transparent)}
 
-/* === Resultados de busqueda YouTube (grid de tarjetas) === */
+/* === Resultados de busqueda YouTube === */
 .dl-results{margin:6px 0 16px}
 .dl-results-hd{font-size:11.5px;color:var(--dim);padding:6px 4px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .dl-results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-.dl-res{display:flex;flex-direction:column;background:color-mix(in srgb,var(--ink) 4%,transparent);border:1px solid var(--ed);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s}
+.dl-res{display:flex;flex-direction:column;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;transition:transform .2s,border-color .2s}
 .dl-res:hover{transform:translateY(-3px);border-color:var(--acc)}
 .dl-res-thumb{width:100%;aspect-ratio:16/9;background:#000;overflow:hidden;position:relative}
 .dl-res-thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -38,3 +61,53 @@
 .dl-res-btn{width:100%;padding:10px 8px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#26123f;font-weight:800;font-size:12px;border:0;cursor:pointer;transition:filter .15s;letter-spacing:.2px}
 .dl-res-btn:hover{filter:brightness(1.1)}
 .dl-res-btn:disabled{opacity:.6;cursor:wait}
+
+/* === BOTÓN DE PLAY Y SPINNER === */
+.dl-res-prev {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  z-index: 10;
+}
+.dl-res-prev:hover {
+  background: var(--acc);
+  color: #000;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Estado cuando está cargando */
+.dl-res-prev.loading {
+  width: auto !important;
+  padding: 0 12px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: var(--acc) !important;
+  border: 1px solid var(--acc) !important;
+}
+.dl-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--acc);
+  border-radius: 50%;
+  animation: dl-spin 1s linear infinite;
+  margin-right: 6px;
+}
+@keyframes dl-spin {
+  to { transform: rotate(360deg); }
+}

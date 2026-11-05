@@ -1,9 +1,10 @@
-/* Vista: Biblioteca de Videos + Galeria de busqueda */
+/* Vista: Biblioteca de Videos */
 let _vidItems = [];
 let _vidCurrent = null;
 let _vidDls = {};
 let _vidResults = [];
 let _vidLoading = false;
+let _vidIndex = 0;
 
 function fmtBytes(b) {
   if (!b) return '0 B';
@@ -23,209 +24,203 @@ function vidUrl(p) {
 function isYouTubeUrl(v) {
   return /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)/i.test(v.trim());
 }
+function isDriveUrl(v) {
+  return /^(https?:\/\/)?(drive\.google\.com\/file\/d\/)/i.test(v.trim());
+}
 function extractVideoId(v) {
   const m = v.match(/(?:v=|\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
   return m ? m[1] : null;
 }
 
-/* ---------- Sonido chime (Web Audio API) ---------- */
-let _audioCtx = null;
-function playChime() {
-  try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const ctx = _audioCtx;
-    if (ctx.state === 'suspended') ctx.resume();
-    const now = ctx.currentTime;
-    [523.25, 659.25, 783.99].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const t = now + i * 0.1;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.12, t + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-      osc.start(t); osc.stop(t + 0.8);
-    });
-  } catch(e) { console.warn('chime error', e); }
-}
-
-/* ---------- Toast de notificacion ---------- */
-function showDlToast(title, kind) {
-  const old = document.getElementById('dl-toast');
-  if (old) old.remove();
-  const toast = document.createElement('div');
-  toast.id = 'dl-toast';
-  toast.className = 'dl-toast';
-  toast.innerHTML = `
-    <div class="dl-toast-icon">${kind === 'video' ? '🎬' : '🎵'}</div>
-    <div class="dl-toast-info">
-      <b>${kind === 'video' ? 'Video descargado' : 'Cancion descargada'}</b>
-      <span>${title || ''}</span>
+function buildSearchCard(r) {
+  const fullUrl = r.url || ('https://www.youtube.com/watch?v=' + r.id);
+  return `<div class="vid-search-card" data-vid="${r.id}" data-url="${fullUrl}" data-title="${esc(r.title)}">
+    <div class="vid-search-thumb" style="background-image:url('${r.thumb}')">
+      ${r.duration ? `<span class="vid-dur">${fmtDur(r.duration)}</span>` : ''}
     </div>
-  `;
-  document.body.appendChild(toast);
-  requestAnimationFrame(() => toast.classList.add('on'));
-  setTimeout(() => {
-    toast.classList.remove('on');
-    setTimeout(() => toast.remove(), 400);
-  }, 5000);
+    <div class="vid-search-body">
+      <b>${esc(r.title)}</b>
+      <span>${esc(r.channel || '')}</span>
+      <button class="vid-search-dl" data-vid="${r.id}">⬇ Descargar</button>
+    </div>
+  </div>`;
 }
 
-/* ---------- Render de la lista (con galeria) ---------- */
 function renderVideoList() {
   const box = document.getElementById('vid-list');
   if (!box) return;
 
+  const searching = (_vidResults.length > 0 || _vidLoading);
+
+  const topRow = document.querySelector('.vid-top-row');
+  if (topRow) {
+    if (searching) topRow.classList.add('searching');
+    else topRow.classList.remove('searching');
+  }
+
+  const backBtn = document.getElementById('vid-back-btn');
+  if (backBtn) {
+    backBtn.style.display = searching ? 'block' : 'none';
+  }
+
+  const featured = document.getElementById('vid-featured');
+  if (featured) {
+    if (searching && _vidIndex > 0 && _vidResults[_vidIndex - 1] && !_vidLoading) {
+      featured.innerHTML = buildSearchCard(_vidResults[_vidIndex - 1]);
+      featured.style.display = 'block';
+      featured.onclick = () => { _vidIndex--; renderVideoList(); };
+    } else {
+      featured.innerHTML = '';
+      featured.style.display = 'none';
+    }
+  }
+
+  const player = document.getElementById('vid-player');
+  if (player) {
+    if (searching && _vidResults[_vidIndex] && !_vidLoading) {
+      player.innerHTML = buildSearchCard(_vidResults[_vidIndex]);
+    } else if (!searching) {
+      player.style.transform = 'translateX(0)';
+      if (_vidCurrent) {
+        const v = _vidItems.find(x => x.path === _vidCurrent);
+        if (v) {
+          player.innerHTML = `<video src="${vidUrl(v.path)}" controls autoplay></video>`;
+        } else {
+          player.innerHTML = '<div class="vid-empty"><svg viewBox="0 0 24 24" width="4em" height="4em" fill="var(--dim)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg><p style="margin:0">Selecciona un video</p></div>';
+        }
+      } else {
+        player.innerHTML = '<div class="vid-empty"><svg viewBox="0 0 24 24" width="4em" height="4em" fill="var(--dim)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg><p style="margin:0">Selecciona un video</p></div>';
+      }
+    }
+  }
+
+  const nextBox = document.getElementById('vid-next');
+  if (nextBox) {
+    if (searching && _vidIndex < _vidResults.length - 1 && _vidResults[_vidIndex + 1] && !_vidLoading) {
+      nextBox.innerHTML = buildSearchCard(_vidResults[_vidIndex + 1]);
+      nextBox.style.display = 'block';
+      nextBox.onclick = () => { _vidIndex++; renderVideoList(); };
+    } else {
+      nextBox.innerHTML = '';
+      nextBox.style.display = 'none';
+    }
+  }
+
   const dlHtml = Object.entries(_vidDls).map(([id, j]) => `
     <div class="vid-row vid-dl">
-      <div class="vid-ico">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--acc)"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
-      </div>
+      <div class="vid-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="var(--acc)"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg></div>
       <div class="vid-info">
         <b>${j.title || 'Descargando...'}</b>
         <span>${j.status === 'done' ? 'Completado' : j.status === 'cancelled' ? 'Cancelado' : j.status === 'error' ? 'Error' : j.progress.toFixed(1) + '%'}</span>
         ${j.status === 'running' ? `<div class="vid-bar"><i style="width:${j.progress}%"></i></div>` : ''}
       </div>
-      ${j.status === 'running' ? `<button class="vid-cancel" data-cancel="${id}" title="Cancelar">✕</button>` : ''}
+      ${j.status === 'running' ? `<button class="vid-cancel" data-cancel="${id}">✕</button>` : ''}
+      ${(j.status === 'cancelled' || j.status === 'error') ? `<button class="vid-del" data-vid-del="${id}">🗑</button>` : ''}
     </div>
   `).join('');
 
-  // Vista de galeria (si hay resultados o esta cargando)
-  if (_vidResults.length > 0 || _vidLoading) {
-    box.innerHTML = dlHtml + `
-      <div class="vid-search-header">
-        <span>${_vidLoading ? 'Buscando...' : _vidResults.length + ' resultados'}</span>
-        <button id="vid-clear" class="dl-chip">✕ Limpiar</button>
-      </div>
-      ${_vidLoading ? '<div class="vid-spinner"></div>' : ''}
-      <div class="vid-results">
-        ${_vidResults.map(r => `
-          <div class="vid-card" data-vid="${r.id}" data-title="${esc(r.title)}">
-            <div class="vid-thumb" style="background-image:url('${r.thumb}')"><button class="vid-card-play" data-vid="${r.id}" title="Previsualizar">▶</button>
-              ${r.duration ? `<span class="vid-dur">${fmtDur(r.duration)}</span>` : ''}
-            </div>
-            <div class="vid-card-info">
-              <b>${esc(r.title)}</b>
-              <span>${esc(r.channel || '')}</span>
-            </div>
-            <button class="vid-card-dl" data-vid="${r.id}" title="Descargar">⬇</button>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    const clearBtn = document.getElementById('vid-clear');
-    if (clearBtn) clearBtn.onclick = () => { _vidResults = []; _vidLoading = false; renderVideoList(); };
-    box.querySelectorAll('.vid-card-play').forEach(function(btn){ btn.onclick = function(e){ e.stopPropagation(); if(window.showYouTubePreview) window.showYouTubePreview(btn.dataset.vid); }; });
-    box.querySelectorAll('.vid-card-dl').forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.vid;
-        const card = btn.closest('.vid-card');
-        const title = card ? card.dataset.title : '';
-        const quality = document.getElementById('vid-quality').value;
-        startVideoDownload('https://www.youtube.com/watch?v=' + id, quality, title);
-      };
-    });
-    box.querySelectorAll('.vid-card').forEach(c => {
-      c.onclick = (e) => {
-        if (e.target.closest('.vid-card-dl')) return;
-        const id = c.dataset.vid;
-        window.onda.openExternal('https://www.youtube.com/watch?v=' + id);
-      };
-    });
-    box.querySelectorAll('.vid-cancel').forEach(btn => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        await window.onda.videos.downloadCancel(btn.dataset.cancel);
-        delete _vidDls[btn.dataset.cancel];
-        renderVideoList();
-      };
-    });
-    return;
-  }
-
-  // Vista normal (biblioteca)
-  const videosHtml = _vidItems.length ? _vidItems.map((v, i) => `
-    <div class="vid-row${_vidCurrent === v.path ? ' on' : ''}" data-idx="${i}">
-      <div class="vid-ico">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="var(--acc)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-      </div>
-      <div class="vid-info">
-        <b>${v.name}</b>
-        <span>${v.ext.toUpperCase()} · ${fmtBytes(v.size)}</span>
-      </div><button class="vid-del" data-del="${v.path}" data-name="${v.name}" title="Borrar del disco">🗑</button>
+  const localHtml = _vidItems.length ? _vidItems.map((v, i) => `
+    <div class="vid-hud-card ${_vidCurrent === v.path ? 'on' : ''}" data-idx="${i}">
+      <div class="vid-hud-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="var(--acc)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div>
+      <div class="vid-hud-info"><b>${v.name}</b><span>${v.ext.toUpperCase()} · ${fmtBytes(v.size)}</span></div>
+      <button class="vid-hud-del" data-del="${v.path}" data-name="${esc(v.name)}">🗑</button>
     </div>
-  `).join('') : '<div style="text-align:center;padding:40px 20px;color:var(--dim)"><p style="margin:0;font-size:13px">No hay videos aun.<br>Usa "Buscar / Descargar" o añade una carpeta.</p></div>';
+  `).join('') : '';
 
-  box.innerHTML = dlHtml + videosHtml;
-  box.querySelectorAll('.vid-del').forEach(btn => {
+  const isBaseEmpty = _vidItems.length === 0 && Object.keys(_vidDls).length === 0;
+  const baseEmptyHtml = isBaseEmpty ? `<div style="width:100%; text-align:center; color:var(--dim); font-size:12px; padding:20px;">No hay videos locales ni descargas recientes.</div>` : '';
+
+  const isEmpty = !searching && !_vidItems.length && Object.keys(_vidDls).length === 0;
+  const emptyHtml = isEmpty ? `
+    <div class="vid-empty-zone">
+      <div class="vid-empty-glow"><svg viewBox="0 0 24 24" width="40" height="40" fill="var(--acc)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div>
+      <h3>Sin videos</h3>
+      <p>Busca o añade una carpeta.</p>
+    </div>
+  ` : '';
+
+  box.innerHTML = dlHtml + localHtml + baseEmptyHtml + emptyHtml;
+
+  // Listeners para las tarjetas
+  [featured, player, nextBox].forEach(container => {
+    if (!container) return;
+    
+    // LISTENER DE DESCARGA
+    const dlBtn = container.querySelector('.vid-search-dl');
+    if (dlBtn) {
+      // Detenemos el arrastre desde el pointerdown
+      dlBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      
+      dlBtn.onclick = async (e) => {
+        e.stopPropagation();
+        const originalText = dlBtn.textContent;
+        dlBtn.textContent = '⏳ En cola...';
+        dlBtn.disabled = true;
+        
+        try {
+          await startVideoDownload('https://www.youtube.com/watch?v=' + dlBtn.dataset.vid, document.getElementById('vid-quality').value, '');
+          if (document.body.contains(dlBtn)) dlBtn.textContent = '✓ Iniciado';
+        } catch (err) {
+          if (document.body.contains(dlBtn)) {
+            dlBtn.textContent = '❌ Error';
+            dlBtn.disabled = false;
+            setTimeout(() => {
+              if (document.body.contains(dlBtn)) {
+                dlBtn.textContent = originalText;
+                dlBtn.disabled = false;
+              }
+            }, 3000);
+          }
+        }
+      };
+    }
+  });
+
+  box.querySelectorAll('.vid-hud-card').forEach(card => {
+    card.onclick = () => playVideo(_vidItems[parseInt(card.dataset.idx, 10)]);
+  });
+  box.querySelectorAll('.vid-hud-del').forEach(btn => {
     btn.onclick = async (e) => {
       e.stopPropagation();
-      const path = btn.dataset.del;
-      const name = btn.dataset.name;
-      if (!await window.showConfirm('¿Borrar "' + name + '" del disco?\n\nEl archivo se enviará a la papelera de reciclaje.')) return;
-      try {
-        const r = await window.onda.videos.delete(path);
-        if (r && r.ok) {
-          if (_vidCurrent === path) {
-            _vidCurrent = null;
-            const player = document.getElementById('vid-player');
-            if (player) player.innerHTML = '<div class="vid-empty"><svg viewBox="0 0 24 24" width="4em" height="4em" fill="var(--dim)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg><p style="margin:0">Selecciona un video para reproducir</p></div>';
-          }
-          await refreshVideos();
-        } else {
-          await window.showAlert('Error al borrar: ' + (r.error || 'desconocido'));
-        }
-      } catch (err) {
-        await window.showAlert('Error: ' + (err && err.message || err));
-      }
+      if (!await window.showConfirm('¿Borrar "' + btn.dataset.name + '" del disco?')) return;
+      await window.onda.videos.delete(btn.dataset.del);
+      if (_vidCurrent === btn.dataset.del) _vidCurrent = null;
+      await refreshVideos();
     };
-  });
-  box.querySelectorAll('.vid-row[data-idx]').forEach(row => {
-    row.onclick = () => playVideo(_vidItems[parseInt(row.dataset.idx, 10)]);
   });
   box.querySelectorAll('.vid-cancel').forEach(btn => {
-    btn.onclick = async (e) => {
-      e.stopPropagation();
-      await window.onda.videos.downloadCancel(btn.dataset.cancel);
-      delete _vidDls[btn.dataset.cancel];
-      renderVideoList();
-    };
+    btn.onclick = async (e) => { e.stopPropagation(); await window.onda.videos.downloadCancel(btn.dataset.cancel); delete _vidDls[btn.dataset.cancel]; renderVideoList(); };
+  });
+  box.querySelectorAll('.vid-del[data-vid-del]').forEach(btn => {
+    btn.onclick = async (e) => { e.stopPropagation(); delete _vidDls[btn.dataset.vidDel]; renderVideoList(); };
   });
 }
 
 function playVideo(v) {
   if (!v) return;
   _vidCurrent = v.path;
-  const player = document.getElementById('vid-player');
-  if (!player) return;
-  player.innerHTML = `<video id="vid-player-el" src="${vidUrl(v.path)}" controls autoplay preload="metadata"></video>`;
-  document.querySelectorAll('.vid-row').forEach(r => r.classList.remove('on'));
-  const row = document.querySelector(`.vid-row[data-idx="${_vidItems.indexOf(v)}"]`);
-  if (row) row.classList.add('on');
+  _vidResults = [];
+  _vidIndex = 0;
+  document.getElementById('vid-url').value = '';
+  renderVideoList();
 }
 
 async function refreshVideos() {
   if (!window.onda || !window.onda.videos) return;
-  try {
-    _vidItems = await window.onda.videos.scan();
-    renderVideoList();
-  } catch (e) { console.error(e); }
+  try { _vidItems = await window.onda.videos.scan(); renderVideoList(); } catch (e) { console.error(e); }
 }
 
 async function handleSearch(query) {
-  _vidResults = [];
-  _vidLoading = true;
-  renderVideoList();
-  
-  try {
-    const r = await window.onda.youtubeSearchList(query);
-    _vidResults = Array.isArray(r) ? r : [];
+  _vidLoading = true; _vidResults = []; _vidIndex = 0; renderVideoList();
+  try { 
+    if (isDriveUrl(query)) {
+      _vidResults = [{ id: 'drive', title: 'Video de Drive', channel: 'Google Drive', duration: 0, thumb: '', url: query }];
+    } else {
+      const r = await window.onda.youtubeSearchList(query) || []; 
+      _vidResults = r.slice(0, 20); 
+    }
   } catch (e) { _vidResults = []; }
-  _vidLoading = false;
-  renderVideoList();
+  _vidLoading = false; renderVideoList();
 }
 
 async function startVideoDownload(url, quality, title) {
@@ -233,139 +228,135 @@ async function startVideoDownload(url, quality, title) {
   try {
     const r = await window.onda.videos.download(url, quality, null);
     if (r && r.error) await window.showAlert('Error: ' + r.error);
-    else if (r && r.duplicated) await window.showAlert('Ya se esta descargando');
+    else if (r && r.duplicated) await window.showAlert('Ya se está descargando');
     else if (r && r.id) {
-      _vidDls[r.id] = { title: title || 'Iniciando...', progress: 0, status: 'running' };
+      _vidDls[r.id] = { title: title || 'Iniciando...', progress: 0, status: 'running', quality: quality === 'best' ? 'Mejor' : quality + 'p' };
       renderVideoList();
     }
-  } catch (e) { await window.showAlert('Error: ' + (e && e.message || e)); }
+  } catch (e) { 
+    await window.showAlert('Error: ' + (e && e.message || e)); 
+    throw e; // Lanzamos el error para que el botón se reactive
+  }
 }
 
 function viewVideos(v) {
   v.innerHTML = `
-    <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
       <span>Videos</span>
       <span style="display:flex;gap:8px">
-        <button id="vid-manage" class="dl-chip" title="Gestionar carpetas">⚙ Carpetas</button>
+        <button id="vid-manage" class="dl-chip">⚙ Carpetas</button>
         <button id="vid-add" class="dl-main">+ Añadir carpeta</button>
       </span>
     </h2>
-
-    <div class="vid-downloader">
-      <input id="vid-url" type="text" placeholder="Pega URL de YouTube o escribe para buscar..." spellcheck="false">
-      <select id="vid-quality">
-        <option value="best">Mejor</option>
-        <option value="1080">1080p</option>
-        <option value="720" selected>720p</option>
-        <option value="480">480p</option>
-      </select>
+    <div class="vid-top-bar">
+      <input id="vid-url" type="text" placeholder="Pega URL o busca..." spellcheck="false">
+      <button id="vid-back-btn" class="dl-chip" style="display:none; white-space:nowrap;">← Volver</button>
+      <select id="vid-quality"><option value="best">Mejor</option><option value="1080">1080p</option><option value="720" selected>720p</option><option value="480">480p</option></select>
       <button id="vid-dl-btn" class="dl-main">🔍 Buscar / ⬇ Descargar</button>
     </div>
-
-    <div class="dl-head" style="margin-bottom:14px">
-      <input id="vid-search" type="search" placeholder="Buscar en tu biblioteca..." spellcheck="false">
-    </div>
-    <div class="vid-layout">
-      <div id="vid-list" class="vid-list">
-        <p style="color:var(--dim);text-align:center;padding:40px">Cargando videos...</p>
+    <div class="vid-main-container">
+      <div class="vid-top-row">
+        <div id="vid-featured" class="vid-featured"></div>
+        <div id="vid-player" class="vid-player"></div>
+        <div id="vid-next" class="vid-next"></div>
       </div>
-      <div id="vid-player" class="vid-player">
-        <div class="vid-empty">
-          <svg viewBox="0 0 24 24" width="4em" height="4em" fill="var(--dim)"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-          <p style="margin:0">Selecciona un video para reproducir</p>
-        </div>
+      <div class="vid-stairs-container"></div>
+      <div class="vid-base-panel">
+        <h3 class="vid-base-title">BIBLIOTECA LOCAL Y DESCARGAS</h3>
+        <div id="vid-list" class="vid-list"></div>
       </div>
     </div>
   `;
 
-  document.getElementById('vid-add').onclick = async () => {
-    const btn = document.getElementById('vid-add');
-    btn.disabled = true; btn.textContent = 'Abriendo...';
-    try {
-      const dir = await window.onda.videos.addFolder();
-      if (dir) { btn.textContent = 'Escaneando...'; await refreshVideos(); }
-    } catch (e) { console.error(e); }
-    btn.disabled = false; btn.textContent = '+ Añadir carpeta';
+  document.getElementById('vid-add').onclick = async () => { const d = await window.onda.videos.addFolder(); if (d) await refreshVideos(); };
+  document.getElementById('vid-manage').onclick = async () => { await window.showAlert('Gestiona tus carpetas desde Ajustes.'); };
+
+  const clearSearch = () => {
+    document.getElementById('vid-url').value = '';
+    _vidResults = [];
+    _vidIndex = 0;
+    _vidLoading = false;
+    renderVideoList();
   };
 
-  document.getElementById('vid-manage').onclick = async () => {
-    const folders = await window.onda.videos.getFolders();
-    if (!folders.length) { await window.showAlert('No hay carpetas añadidas.'); return; }
-    const lista = folders.map((f, i) => (i + 1) + '. ' + f).join('\n');
-    const resp = prompt('Carpetas:\n\n' + lista + '\n\nNumero a quitar (o cancelar):');
-    if (resp) {
-      const idx = parseInt(resp, 10) - 1;
-      if (idx >= 0 && idx < folders.length) {
-        await window.onda.videos.removeFolder(folders[idx]);
-        await refreshVideos();
-      }
-    }
-  };
+  document.getElementById('vid-back-btn').onclick = clearSearch;
 
-  document.getElementById('vid-search').oninput = (e) => {
-    const val = e.target.value.toLowerCase().trim();
-    document.querySelectorAll('.vid-row[data-idx]').forEach(r => {
-      r.style.display = r.textContent.toLowerCase().includes(val) ? '' : 'none';
-    });
-  };
-
-  const dlBtn = document.getElementById('vid-dl-btn');
-  const urlInput = document.getElementById('vid-url');
   const doAction = () => {
-    const val = urlInput.value.trim();
-    if (!val) return;
+    const val = document.getElementById('vid-url').value.trim();
+    if (!val) { clearSearch(); return; }
     const quality = document.getElementById('vid-quality').value;
-    if (isYouTubeUrl(val)) {
-      const vid = extractVideoId(val);
-      startVideoDownload(vid ? 'https://www.youtube.com/watch?v=' + vid : val, quality, '');
-      urlInput.value = '';
+    if (isYouTubeUrl(val) || isDriveUrl(val)) {
+      startVideoDownload(val, quality, 'Video');
+      document.getElementById('vid-url').value = '';
     } else {
       handleSearch(val);
     }
   };
-  dlBtn.onclick = doAction;
-  urlInput.onkeydown = (e) => { if (e.key === 'Enter') doAction(); };
-
-  refreshVideos().then(() => {
-    if (_vidCurrent) {
-      const found = _vidItems.find(x => x.path === _vidCurrent);
-      if (found) playVideo(found);
-    }
-  });
-}
-
-/* ---------- Listeners globales ---------- */
-if (!window._vidProgressBound && window.onda && window.onda.on) {
-  window._vidProgressBound = true;
-  window._notifiedIds = new Set();
-
-  const onDone = (kind) => (p) => {
-    if (!p) return;
-    if (kind === 'video') {
-      _vidDls[p.id] = { title: p.title || 'Video', progress: p.progress || 0, status: p.status || 'running' };
-      if (view === 'videos') renderVideoList();
-    }
-    if (p.status === 'done' && !window._notifiedIds.has(p.id)) {
-      window._notifiedIds.add(p.id);
-      playChime();
-      showDlToast(p.title || '', kind);
-      if (window.onda.notify) window.onda.notify(p.title || 'Descarga completada', kind);
-      if (kind === 'video') {
-        setTimeout(() => {
-          delete _vidDls[p.id];
-          if (view === 'videos') refreshVideos();
-        }, 1500);
-      }
-    }
+  
+  document.getElementById('vid-dl-btn').onclick = doAction;
+  document.getElementById('vid-url').onkeydown = (e) => { 
+    if (e.key === 'Enter') doAction(); 
+    if (e.key === 'Escape') clearSearch();
   };
 
-  window.onda.on('video:progress', onDone('video'));
-  window.onda.on('download:progress', onDone('audio'));
+  // Lógica de arrastre
+  const playerBox = document.getElementById('vid-player');
+  let isDragging = false;
+  let startX = 0;
+  let currentX = 0;
+
+  playerBox.addEventListener('pointerdown', (e) => {
+    // Si el clic fue en un botón, no arrastrar
+    if (e.target.closest('button')) return;
+    
+    if (!playerBox.querySelector('.vid-search-card')) return;
+    isDragging = true;
+    startX = e.clientX;
+    playerBox.style.transition = 'none';
+    playerBox.style.cursor = 'grabbing';
+    playerBox.setPointerCapture(e.pointerId);
+  });
+
+  playerBox.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    currentX = e.clientX - startX;
+    if ((currentX > 0 && _vidIndex === 0) || (currentX < 0 && _vidIndex === _vidResults.length - 1)) {
+      currentX = currentX * 0.2;
+    }
+    playerBox.style.transform = `translateX(${currentX}px)`;
+  });
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    playerBox.style.cursor = 'pointer';
+    playerBox.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+    
+    if (currentX < -100 && _vidIndex < _vidResults.length - 1) {
+      _vidIndex++;
+      renderVideoList();
+    } else if (currentX > 100 && _vidIndex > 0) {
+      _vidIndex--;
+      renderVideoList();
+    } else {
+      playerBox.style.transform = `translateX(0)`;
+    }
+    currentX = 0;
+  };
+
+  playerBox.addEventListener('pointerup', endDrag);
+  playerBox.addEventListener('pointercancel', endDrag);
+  playerBox.addEventListener('pointerleave', endDrag);
+
+  refreshVideos();
 }
 
-setInterval(() => {
-  if (typeof view !== 'undefined' && view === 'videos' && _vidCurrent && !document.querySelector('#vid-player video')) {
-    const found = _vidItems.find(x => x.path === _vidCurrent);
-    if (found) playVideo(found);
-  }
-}, 500);
+if (!window._vidProgressBound && window.onda && window.onda.on) {
+  window._vidProgressBound = true;
+  window.onda.on('video:progress', (p) => {
+    if (!p) return;
+    _vidDls[p.id] = { title: p.title || 'Video', progress: p.progress || 0, status: p.status || 'running', quality: p.quality || '' };
+    if (typeof view !== 'undefined' && view === 'videos') renderVideoList();
+    if (p.status === 'done') setTimeout(() => { delete _vidDls[p.id]; if (typeof view !== 'undefined' && view === 'videos') refreshVideos(); }, 2000);
+  });
+}

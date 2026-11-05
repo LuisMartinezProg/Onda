@@ -1,5 +1,14 @@
 const { app, BrowserWindow, Tray, Menu, dialog, ipcMain, protocol, net, globalShortcut, nativeImage, shell, session, Notification } = require('electron');
 // @distube/ytdl-core se carga dinámicamente en el handler
+// Recarga automática en desarrollo (No afecta al .exe final)
+try {
+  require('electron-reloader')(module, {
+    debug: true,
+    watchRenderer: true,
+    ignore: ['dist', 'node_modules']
+  });
+} catch (_) {}
+
 const path = require('path'), fs = require('fs'), { pathToFileURL } = require('url'), { Readable } = require('stream');
 
 // Una sola Onda: si ya hay una abierta (aunque esté en la bandeja), la nueva no crea nada, solo muestra la existente
@@ -137,29 +146,26 @@ ipcMain.handle('get-youtube-host', async () => {
 
 
 // ==========================================
-// STREAMING DE AUDIO SIN DESCARGAR
+// OBTENER STREAM DE AUDIO (LOCAL PROXY)
 // ==========================================
 ipcMain.handle('audio:get-stream', async (_, url) => {
   try {
-    // Importación dinámica (compatible con ESM)
-    const ytdlModule = await import('@distube/ytdl-core');
-    const ytdl = ytdlModule.default || ytdlModule;
+    const isYT = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)/i.test(url);
+    if (!isYT) return { error: 'URL de YouTube inválida' };
 
-    if (!ytdl.validateURL(url)) return { error: 'URL de YouTube inválida' };
-    
-    const info = await ytdl.getInfo(url);
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
-    
-    if (!format) return { error: 'No se encontró formato de audio' };
-    
+    const match = url.match(/(?:v=|\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    const videoId = match ? match[1] : null;
+    if (!videoId) return { error: 'No se pudo extraer el ID del video' };
+
+    // Devolvemos la URL de nuestro propio servidor local (que actúa como proxy)
     return { 
-      streamUrl: format.url, 
-      title: info.videoDetails.title,
-      duration: info.videoDetails.lengthSeconds 
+      streamUrl: `http://127.0.0.1:${_serverPort}/api/audio?id=${videoId}`, 
+      title: 'Audio',
+      duration: 0
     };
   } catch (e) {
     console.error('[onda] Error en audio:get-stream:', e);
-    return { error: e.message || 'Error al obtener el audio' };
+    return { error: 'Error al extraer audio: ' + (e.message || e) };
   }
 });
 
@@ -487,18 +493,19 @@ ipcMain.handle('videos:download', async (_, url, quality, targetFolder) => {
   ];
 
   const proc = spawn(ytdlp, args, { windowsHide: true });
-  const job = { id, url, quality, progress: 0, status: 'running', proc, dir, file: '', title: '' };
+  const qualityText = quality === 'best' ? 'Mejor' : quality + 'p';
+  const job = { id, url, quality, qualityText, progress: 0, status: 'running', proc, dir, file: '', title: '' };
   videoDownloadJobs.set(id, job);
 
   const send = (channel, payload) => win && !win.isDestroyed() && win.webContents.send(channel, payload);
-  send('video:progress', { id, title: 'Descargando...', progress: 0, status: 'running' });
+  send('video:progress', { id, title: 'Conectando...', progress: 0, status: 'running', quality: qualityText });
 
   proc.stdout.on('data', chunk => {
     const txt = chunk.toString();
     const mp = txt.match(/\[download\]\s+([\d.]+)%/);
     if (mp) {
       job.progress = parseFloat(mp[1]);
-      send('video:progress', { id, title: job.title || 'Descargando...', progress: job.progress, status: 'running' });
+      send('video:progress', { id, title: job.title || 'Descargando...', progress: job.progress, status: 'running', quality: qualityText });
     }
     const mtitle = txt.match(/\[download\] Destination:\s*(.+?)\.[a-z0-9]+$/m);
     if (mtitle && !job.title) {
@@ -519,11 +526,11 @@ ipcMain.handle('videos:download', async (_, url, quality, targetFolder) => {
     if (code === 0) {
       job.status = 'done';
       job.progress = 100;
-      send('video:progress', { id, title: job.title || 'Video', progress: 100, status: 'done' });
+      send('video:progress', { id, title: job.title || 'Video', progress: 100, status: 'done', quality: qualityText });
     } else {
       const cancelled = job.status === 'cancelled';
       job.status = cancelled ? 'cancelled' : 'error';
-      send('video:progress', { id, title: job.title || 'Video', progress: job.progress, status: job.status });
+      send('video:progress', { id, title: job.title || 'Video', progress: job.progress, status: job.status, quality: qualityText });
     }
     setTimeout(() => videoDownloadJobs.delete(id), 60000);
   });
@@ -550,7 +557,7 @@ ipcMain.handle('youtube:searchList', async (_, query) => {
   const vendorDir = __dirname.includes('app.asar') ? path.join(process.resourcesPath, 'app.asar.unpacked', 'vendor') : path.join(__dirname, 'vendor');
   const ytdlp = path.join(vendorDir, 'yt-dlp.exe');
   return new Promise(resolve => {
-    const args = ['--dump-json', '--flat-playlist', '--no-warnings', 'ytsearch8:' + String(query)];
+    const args = ['--dump-json', '--flat-playlist', '--no-warnings', 'ytsearch20:' + String(query)];
     const proc = spawn(ytdlp, args, { windowsHide: true });
     let buf = '';
     proc.stdout.on('data', c => { buf += c.toString(); });
@@ -569,7 +576,7 @@ ipcMain.handle('youtube:searchList', async (_, query) => {
           });
         } catch {}
       }
-      resolve(out.slice(0, 8));
+      resolve(out.slice(0, 20));
     });
     proc.on('error', () => resolve([]));
     setTimeout(() => { try { proc.kill(); } catch {} }, 20000);
@@ -835,11 +842,47 @@ const url = require('url');
 let _server = null;
 let _serverPort = 47891;
 
+// Caché global para no crear la sesión de YouTube en cada clic
+let _ytCache = null;
+async function getYTCache() {
+  if (_ytCache) return _ytCache;
+  const { Innertube } = await import('youtubei.js');
+  _ytCache = await Innertube.create({ retrieve_player: true });
+  return _ytCache;
+}
+
 function startLocalServer() {
   return new Promise((resolve, reject) => {
     const root = __dirname;
     _server = http.createServer((req, res) => {
       let pathname = url.parse(req.url).pathname;
+      
+      // PROXY DE AUDIO (Evita bloqueos y CORS)
+      if (pathname === '/api/audio') {
+        const query = url.parse(req.url, true).query;
+        const videoId = query.id;
+        if (!videoId) { res.writeHead(400); res.end('Missing id'); return; }
+        
+        (async () => {
+          try {
+            const tube = await getYTCache();
+            const { createAdaptiveStream } = await import('simple-ytdl-core');
+            const stream = await createAdaptiveStream(tube, videoId);
+            
+            res.writeHead(200, { 
+               'Content-Type': 'audio/mp4',
+               'Accept-Ranges': 'bytes',
+               'Access-Control-Allow-Origin': '*'
+            });
+            stream.pipe(res);
+          } catch (e) {
+             console.error('[onda] Audio proxy error:', e);
+             if (!res.headersSent) { res.writeHead(500); res.end(); }
+          }
+        })();
+        return;
+      }
+
       if (pathname === '/') pathname = '/index.html';
       
       const filePath = path.join(root, pathname);
@@ -991,3 +1034,85 @@ app.whenReady().then(() => {
 app.on('second-instance', () => { if (!win) return; if (win.isMinimized()) win.restore(); showWin(); });
 app.on('before-quit', () => { quitting = true; });
 app.on('will-quit', () => { globalShortcut.unregisterAll(); if (_server) _server.close(); });
+// --- PREVISUALIZACIÓN DE 60 SEGUNDOS ---
+ipcMain.handle('video:previewClip', async (event, { url }) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const tempDir = app.getPath('temp');
+      const outPath = path.join(tempDir, `onda_preview_${Date.now()}.mp4`);
+      
+      // Ruta correcta de yt-dlp (soporta modo desarrollo y modo compilado .exe)
+      const vendorDir = __dirname.includes('app.asar')
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'vendor')
+        : path.join(__dirname, 'vendor');
+      const ytdlpPath = path.join(vendorDir, 'yt-dlp.exe');
+      const ffmpegPath = path.join(vendorDir, 'ffmpeg.exe');
+      
+      // Comando: descargar solo los primeros 60 segundos, mejor calidad hasta 720p
+      const args = [
+        url,
+        '--download-sections', '*0-60',
+        '-f', 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best',
+        '--merge-output-format', 'mp4',
+        '--ffmpeg-location', ffmpegPath,
+        '-o', outPath,
+        '--no-warnings',
+        '--quiet'
+      ];
+
+      const child = spawn(ytdlpPath, args);
+      
+      child.on('close', (code) => {
+        if (code === 0 && fs.existsSync(outPath)) {
+          resolve(outPath);
+        } else {
+          reject(new Error('No se pudo descargar la previsualización.'));
+        }
+      });
+      
+      child.on('error', (err) => reject(err));
+    } catch (e) {
+      reject(e);
+    }
+  });
+});
+
+// --- PREVISUALIZACIÓN DE AUDIO COMPLETA (ENLACE DIRECTO) ---
+ipcMain.handle('audio:getDirectUrl', async (_, url) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const { spawn } = require('child_process');
+      const path = require('path');
+      
+      const vendorDir = __dirname.includes('app.asar')
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'vendor')
+        : path.join(__dirname, 'vendor');
+      const ytdlpPath = path.join(vendorDir, 'yt-dlp.exe');
+      
+      // -g: get-url. Añadimos bypass para evitar bloqueos de YouTube
+      const args = [
+        '-g', 
+        '-f', 'bestaudio[ext=m4a]/bestaudio', 
+        '--extractor-args', 'youtube:player_client=android,web',
+        url
+      ];
+      
+      const child = spawn(ytdlpPath, args);
+      
+      let out = '';
+      let err = '';
+      child.stdout.on('data', (data) => { out += data.toString(); });
+      child.stderr.on('data', (data) => { err += data.toString(); });
+      
+      child.on('close', (code) => {
+        const link = out.trim().split('\n')[0];
+        if (code === 0 && link.startsWith('http')) {
+          resolve(link);
+        } else {
+          reject(new Error('yt-dlp falló: ' + err.substring(0, 100)));
+        }
+      });
+      child.on('error', (e) => reject(e));
+    } catch (e) { reject(e); }
+  });
+});

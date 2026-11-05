@@ -10,7 +10,7 @@ async function songPath(t){
   return null;
 }
 
-async async function doDelete(mode){
+async function doDelete(mode){
   const t=_delSong;
   if(!t)return;
   const dlg=document.getElementById('deld');

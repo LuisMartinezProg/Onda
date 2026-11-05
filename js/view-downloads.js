@@ -23,7 +23,7 @@ function dlRender(){
     const stLabel = x.status==='done'?'✅':x.status==='running'?'⬇':x.status==='cancelled'?'⛔':'⚠';
     const title=esc(x.title||'Descarga '+(x.id||''));
     const url=esc(x.url||'');
-    const sub=esc((x.file||url).split(/[\\\/]/).pop());
+    const sub=esc((x.file||url).split(/[\\\/]/).pop()) + ' · MP3';
     return `<div class="dl-row" data-id="${x.id}">
       <div class="dl-ico">${stLabel}</div>
       <div class="dl-info">
@@ -39,6 +39,28 @@ function dlRender(){
   }).join('');
 }
 
+function askCover() {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#1a1525;border:1px solid var(--acc);padding:24px;border-radius:16px;display:flex;flex-direction:column;gap:12px;width:320px;box-shadow:0 10px 40px rgba(0,0,0,0.8);';
+    box.innerHTML = `
+      <h3 style="margin:0;font-size:18px;color:#fff;text-align:center;">Descargar MP3</h3>
+      <p style="margin:0 0 10px 0;font-size:13px;color:#aaa;text-align:center;">¿Deseas incluir la portada del video en el archivo?</p>
+      <button id="btn-cover" style="background:var(--acc);color:#000;border:none;padding:12px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;">Con portada</button>
+      <button id="btn-nocc" style="background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);padding:12px;border-radius:8px;cursor:pointer;font-size:14px;">Sin portada</button>
+      <button id="btn-cancel" style="background:transparent;color:#ff8a8a;border:none;padding:10px;cursor:pointer;font-size:13px;margin-top:4px;">Cancelar</button>
+    `;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    box.querySelector('#btn-cover').onclick = () => { overlay.remove(); resolve('cover'); };
+    box.querySelector('#btn-nocc').onclick = () => { overlay.remove(); resolve('nocc'); };
+    box.querySelector('#btn-cancel').onclick = () => { overlay.remove(); resolve('cancel'); };
+  });
+}
+
 function viewDownloads(v){
   v.innerHTML=`<h2>Descargas</h2>
     <div class="dl-head">
@@ -50,13 +72,17 @@ function viewDownloads(v){
       <button id="dl-open" class="dl-chip">📂 Abrir carpeta</button>
     </div>
     <div id="dl-results" class="dl-results"></div>
-    <div class="dl-tabs">
-      <button data-dt="all" class="${_dlTab==='all'?'on':''}">Todo</button>
-      <button data-dt="done" class="${_dlTab==='done'?'on':''}">Descargados</button>
-      <button data-dt="running" class="${_dlTab==='running'?'on':''}">En proceso</button>
-      <button data-dt="cancel" class="${_dlTab==='cancel'?'on':''}">Canceladas</button>
-    </div>
-    <div id="dl-list"><p style="color:var(--dim);text-align:center;padding:40px 20px">Cargando...</p></div>`;
+    
+    <div class="dl-base-panel">
+      <h3 class="dl-base-title">HISTORIAL DE DESCARGAS</h3>
+      <div class="dl-tabs">
+        <button data-dt="all" class="${_dlTab==='all'?'on':''}">Todo</button>
+        <button data-dt="done" class="${_dlTab==='done'?'on':''}">Descargados</button>
+        <button data-dt="running" class="${_dlTab==='running'?'on':''}">En proceso</button>
+        <button data-dt="cancel" class="${_dlTab==='cancel'?'on':''}">Canceladas</button>
+      </div>
+      <div id="dl-list"><p style="color:var(--dim);text-align:center;padding:40px 20px">Cargando...</p></div>
+    </div>`;
   dlBind();
   dlRefresh();
 }
@@ -83,7 +109,17 @@ function dlBind(){
     finally { go.disabled=false;go.textContent='⬇ Descargar URL'; }
   };
 
-  if(url)url.onkeydown=e=>{ if(e.key==='Enter'&&go)go.click(); };
+  if(url)url.onkeydown=e=>{ 
+    if(e.key==='Enter'){
+      const q = url.value.trim();
+      const isUrl = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/)|youtu\.be\/)/i.test(q);
+      if (isUrl) {
+        if (go) go.click();
+      } else {
+        if (sBtn) sBtn.click();
+      }
+    } 
+  };
 
   if(sBtn)sBtn.onclick=async()=>{
     const q=(url&&url.value||'').trim();
@@ -137,54 +173,168 @@ function dlBind(){
     if (prevBtn) {
       e.stopPropagation();
       const vid = prevBtn.dataset.vid;
-      const originalText = prevBtn.textContent;
-      prevBtn.textContent = '⏳';
-      prevBtn.disabled = true;
       
-      let previewContainer = document.getElementById('preview-audio-container');
-      if (!previewContainer) {
-        previewContainer = document.createElement('div');
-        previewContainer.id = 'preview-audio-container';
-        previewContainer.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:color-mix(in srgb, var(--acc) 20%, #1a1525);border-radius:16px;padding:12px 16px;box-shadow:0 10px 30px rgba(0,0,0,0.8), 0 0 25px color-mix(in srgb, var(--acc) 40%, transparent);display:flex;align-items:center;gap:12px;max-width:500px;width:90%;border:2px solid var(--acc);backdrop-filter:blur(15px);';
-        document.body.appendChild(previewContainer);
+      // 1. Cerrar cualquier reproductor anterior que esté sonando
+      const oldContainer = document.getElementById('preview-audio-container');
+      if (oldContainer) {
+        const oldAudio = oldContainer.querySelector('audio');
+        if (oldAudio) {
+          oldAudio.pause();
+          oldAudio.src = '';
+        }
+        oldContainer.remove();
       }
-      previewContainer.innerHTML = '';
+      
+      // 2. Restaurar todos los botones de la cuadrícula
+      document.querySelectorAll('.dl-res-prev').forEach(b => { 
+        b.innerHTML = '▶'; 
+        b.classList.remove('loading'); 
+        b.disabled = false; 
+      });
+
+      // 3. Poner el botón actual en "Espera..."
+      prevBtn.innerHTML = '<div class="dl-spinner" style="margin-right:6px;"></div> Espera...';
+      prevBtn.classList.add('loading');
+      prevBtn.disabled = true;
       
       const card = prevBtn.closest('.dl-res');
       const thumbUrl = card ? card.querySelector('img')?.src : '';
       const title = card ? card.querySelector('b')?.textContent : 'Previsualización';
+
+      // 4. Crear el reproductor flotante INMEDIATAMENTE en modo "Esperando..."
+      const previewContainer = document.createElement('div');
+      previewContainer.id = 'preview-audio-container';
+      previewContainer.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(15, 12, 25, 0.95);border-radius:20px;padding:16px 20px;box-shadow:0 10px 40px rgba(0,0,0,0.9), 0 0 30px color-mix(in srgb, var(--acc) 30%, transparent);display:flex;align-items:center;gap:16px;max-width:550px;width:90%;border:1px solid color-mix(in srgb, var(--acc) 40%, transparent);backdrop-filter:blur(20px);';
       
       previewContainer.innerHTML = `
-        <img src="${thumbUrl}" style="width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
-          <div style="font-size:11px;color:var(--dim);">Previsualización</div>
+        <img src="${thumbUrl}" style="width:64px;height:64px;border-radius:12px;object-fit:cover;box-shadow:0 4px 12px rgba(0,0,0,0.5);flex-shrink:0;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+            <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
+            <button id="preview-audio-close" style="background:transparent;border:none;color:#888;cursor:pointer;font-size:18px;padding:0;line-height:1;transition:color 0.2s;">✕</button>
+          </div>
+          
+          <div id="preview-status" style="font-size:12px;color:var(--acc);display:flex;align-items:center;gap:6px;">
+            <div class="dl-spinner" style="width:12px;height:12px;border-width:1.5px;"></div> Esperando a YouTube...
+          </div>
+          
+          <div id="custom-audio-ui" style="display:none;align-items:center;gap:12px;width:100%;">
+            <button id="custom-play-btn" style="background:var(--acc);color:#000;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:transform 0.2s;">⏸</button>
+            <div id="custom-progress" style="flex:1;height:6px;background:rgba(255,255,255,0.1);border-radius:10px;cursor:pointer;position:relative;">
+              <div id="custom-progress-fill" style="width:0%;height:100%;background:var(--acc);border-radius:10px;transition:width 0.1s linear;box-shadow:0 0 10px var(--acc);"></div>
+            </div>
+            <span id="custom-time" style="font-size:11px;color:#aaa;min-width:75px;text-align:right;font-variant-numeric:tabular-nums;">--:-- / --:--</span>
+          </div>
         </div>
-        <audio id="preview-audio-player" controls style="width:180px;height:32px;"></audio>
-        <button id="preview-audio-close" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;cursor:pointer;flex-shrink:0;">✕</button>
+        <audio id="preview-audio-player" style="display:none;"></audio>
       `;
-      
+      document.body.appendChild(previewContainer);
+
       const audioPlayer = previewContainer.querySelector('#preview-audio-player');
       const closeBtn = previewContainer.querySelector('#preview-audio-close');
-      closeBtn.onclick = () => {
+      const playBtn = previewContainer.querySelector('#custom-play-btn');
+      const progressBar = previewContainer.querySelector('#custom-progress');
+      const progressFill = previewContainer.querySelector('#custom-progress-fill');
+      const timeDisplay = previewContainer.querySelector('#custom-time');
+      const statusText = previewContainer.querySelector('#preview-status');
+      const audioUI = previewContainer.querySelector('#custom-audio-ui');
+
+      const cleanup = () => {
         audioPlayer.pause();
         previewContainer.remove();
+        document.querySelectorAll('.dl-res-prev').forEach(b => { 
+          b.innerHTML = '▶'; 
+          b.classList.remove('loading'); 
+          b.disabled=false; 
+        });
       };
-      
-      window.onda.getAudioStream('https://www.youtube.com/watch?v=' + vid).then(r => {
-        if (r && r.streamUrl) {
-          audioPlayer.src = r.streamUrl;
-          audioPlayer.play().catch(() => {});
-          prevBtn.textContent = '⏹';
+
+      closeBtn.onmouseover = () => closeBtn.style.color = '#ff8a8a';
+      closeBtn.onmouseout = () => closeBtn.style.color = '#888';
+      closeBtn.onclick = cleanup;
+
+      playBtn.onclick = () => {
+        if (audioPlayer.paused) {
+          audioPlayer.play();
+          playBtn.textContent = '⏸';
         } else {
-          window.showAlert('No se pudo preescuchar: ' + (r.error || 'error desconocido'));
-          prevBtn.textContent = originalText;
+          audioPlayer.pause();
+          playBtn.textContent = '▶';
         }
-        prevBtn.disabled = false;
+      };
+
+      const formatTime = (secs) => {
+        if (isNaN(secs) || secs === Infinity || secs === 0) return '--:--';
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      const updateTimeDisplay = () => {
+        if (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration !== Infinity) {
+          timeDisplay.textContent = `${formatTime(audioPlayer.currentTime)} / ${formatTime(audioPlayer.duration)}`;
+        } else {
+          timeDisplay.textContent = `${formatTime(audioPlayer.currentTime)} / --:--`;
+        }
+      };
+
+      // Se ejecuta en cuanto el navegador detecta la duración real del audio
+      audioPlayer.onloadedmetadata = () => {
+        updateTimeDisplay();
+      };
+
+      audioPlayer.ontimeupdate = () => {
+        updateTimeDisplay();
+        if (audioPlayer.duration && !isNaN(audioPlayer.duration) && audioPlayer.duration !== Infinity) {
+          const pct = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+          progressFill.style.width = pct + '%';
+        }
+      };
+
+      audioPlayer.onended = () => {
+        playBtn.textContent = '▶';
+        progressFill.style.width = '0%';
+        // Al terminar, mostramos 0:00 con la duración total correcta
+        if (audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+           timeDisplay.textContent = `0:00 / ${formatTime(audioPlayer.duration)}`;
+        } else {
+           timeDisplay.textContent = '--:-- / --:--';
+        }
+      };
+
+      progressBar.onclick = (e) => {
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        audioPlayer.currentTime = pos * audioPlayer.duration;
+      };
+
+      // 5. Pedir el enlace usando ytdl-core (más rápido y confiable)
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('YouTube está tardando demasiado. Intenta de nuevo.')), 10000));
+      
+      Promise.race([
+        window.onda.getAudioStream('https://www.youtube.com/watch?v=' + vid),
+        timeoutPromise
+      ]).then(result => {
+        if (!result || result.error || !result.streamUrl) {
+          throw new Error(result && result.error ? result.error : 'No se obtuvo el enlace de audio');
+        }
+        
+        // Cuando llega la URL, ocultamos el "Esperando..." y mostramos los controles
+        statusText.style.display = 'none';
+        audioUI.style.display = 'flex';
+        audioPlayer.src = result.streamUrl;
+        audioPlayer.play().catch(() => {});
+        playBtn.textContent = '⏸';
+        
+        // Restaurar el botón de la tarjeta
+        document.querySelectorAll('.dl-res-prev').forEach(b => { 
+          b.innerHTML = '▶'; 
+          b.classList.remove('loading'); 
+          b.disabled=false; 
+        });
       }).catch(err => {
-        window.showAlert('Error: ' + (err.message || err));
-        prevBtn.textContent = originalText;
-        prevBtn.disabled = false;
+        window.showAlert('No se pudo cargar la canción: ' + (err.message || err));
+        cleanup();
       });
       return;
     }
@@ -194,9 +344,11 @@ function dlBind(){
     const id=card.dataset.id; const t=card.dataset.title||'';
     const url2='https://www.youtube.com/watch?v='+id;
     
-    // Preguntar si incluir portada
-    const includeCover = await window.showConfirm('¿Incluir la portada en el archivo MP3?');
-    btn.disabled=true;btn.textContent='…';
+    const choice = await askCover();
+    if (choice === 'cancel') return;
+    const includeCover = (choice === 'cover');
+    
+    btn.disabled=true;btn.textContent='⏳...';
     try{
       const r=await window.onda.download.start(url2,PF,t,includeCover);
       if(r&&r.error){ window.showAlert('Error: '+r.error); btn.disabled=false;btn.textContent='⬇ Descargar'; }

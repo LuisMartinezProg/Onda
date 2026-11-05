@@ -23,12 +23,20 @@ contextBridge.exposeInMainWorld('onda', {
     removeFolder: (dir) => ipcRenderer.invoke('videos:remove-folder', dir),
     openFolder: (dir) => ipcRenderer.invoke('videos:open-folder', dir)
   },
-  download: { start: (url, pf, title, includeCover) => ipcRenderer.invoke('download:start', url, pf, title, includeCover), list: () => ipcRenderer.invoke('download:list'), history: (pf) => ipcRenderer.invoke('download:history', pf), cancel: (id) => ipcRenderer.invoke('download:cancel', id), remove: (pf, id) => ipcRenderer.invoke('download:remove', pf, id), openFolder: (pf) => ipcRenderer.invoke('download:open-folder', pf) },
+  download: { 
+    start: (url, pf, title, includeCover) => ipcRenderer.invoke('download:start', url, pf, title, includeCover), 
+    list: () => ipcRenderer.invoke('download:list'), 
+    history: (pf) => ipcRenderer.invoke('download:history', pf), 
+    cancel: (id) => ipcRenderer.invoke('download:cancel', id), 
+    remove: (pf, id) => ipcRenderer.invoke('download:remove', pf, id), 
+    openFolder: (pf) => ipcRenderer.invoke('download:open-folder', pf) 
+  },
   youtubeSearch: q => ipcRenderer.invoke('youtube:search', q),
   youtubeSearchList: q => ipcRenderer.invoke('youtube:searchList', q),
   playerState: playing => ipcRenderer.send('player:state', playing),
   clearYouTubeSession: () => ipcRenderer.invoke('clear-youtube-session'),
   getYouTubeHost: () => ipcRenderer.invoke('get-youtube-host'),
   getAudioStream: (url) => ipcRenderer.invoke('audio:get-stream', url),
+  getAudioDirectUrl: (url) => ipcRenderer.invoke('audio:getDirectUrl', url),
   on: (ch, fn) => ipcRenderer.on(ch, (_, a) => fn(a))
 });
