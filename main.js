@@ -935,7 +935,31 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false);
   win.once('ready-to-show', () => { if (!process.argv.includes('--hidden')) win.show(); }); // con --hidden arranca directo en la bandeja
-  win.on('close', e => { if (!quitting) { e.preventDefault(); win.hide(); } }); // sigue sonando en la bandeja
+  win.on('close', e => {
+    // Si el usuario da clic en la X, cerramos la app al 100%
+    if (!quitting) {
+      quitting = true;
+      
+      // 1. Destruir el icono de la bandeja (si existe)
+      if (tray) { try { tray.destroy(); } catch {} }
+      
+      // 2. Cerrar el servidor local (el del proxy de audio)
+      if (_server) { try { _server.close(); } catch {} }
+      
+      // 3. Matar cualquier descarga de música activa
+      for (const job of downloadJobs.values()) { 
+        if (job.proc) { try { job.proc.kill(); } catch {} } 
+      }
+      
+      // 4. Matar cualquier descarga de video activa
+      for (const job of videoDownloadJobs.values()) { 
+        if (job.proc) { try { job.proc.kill(); } catch {} } 
+      }
+
+      // 5. Forzar el cierre definitivo del proceso
+      app.exit(0);
+    }
+  });
   startLocalServer().then(() => {
     win.loadURL('http://127.0.0.1:' + _serverPort + '/index.html');
   }).catch((err) => {

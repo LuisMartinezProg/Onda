@@ -13,7 +13,8 @@
   "devDependencies": {
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
-    "electron-reloader": "^2.0.0"
+    "electron-reloader": "^2.0.0",
+    "png-to-ico": "^3.0.2"
   },
   "build": {
     "asarUnpack": [
@@ -47,7 +48,7 @@
         "nsis",
         "dir"
       ],
-      "icon": "icon.png",
+      "icon": "icon.ico",
       "signAndEditExecutable": false
     },
     "nsis": {
