@@ -1,0 +1,422 @@
+﻿=== ARCHIVO: js\delete.js ===
+/* Borrar canciones — boton dentro del dialog de Editar */
+let _delSong=null;
+
+async function songPath(t){
+  if(!t)return null;
+  if(t.p&&t.p[0]&&/^([a-zA-Z]:[\\\/]|\\\\)/.test(t.p[0]))return t.p[0];
+  if(t.d&&t.p&&t.p.length)return t.d.replace(/[\\\/]+$/,'')+'\\'+t.p.join('\\');
+  if(t.u&&t.u.indexOf('?p=')>-1){
+    try{ return decodeURIComponent(t.u.split('?p=')[1]); }catch(e){ return null; }
+  }
+  return null;
+}
+
+async function doDelete(mode){
+  const t=_delSong;
+  if(!t)return;
+  const dlg=document.getElementById('deld');
+  const h=document.getElementById('deld-h');
+  const bLib=document.getElementById('deld-lib');
+  const bDisk=document.getElementById('deld-disk');
+  const bCancel=document.getElementById('deld-cancel');
+
+  if(mode==='cancel'){ if(dlg)dlg.close(); _delSong=null; return; }
+
+  if(bLib)bLib.disabled=true;
+  if(bDisk)bDisk.disabled=true;
+  if(bCancel)bCancel.disabled=true;
+  if(h)h.textContent='Borrando…';
+
+  try{
+    if(mode==='disk'){
+      const p=await songPath(t);
+      if(!p){
+        window.showAlert('No se puede borrar del disco: no hay ruta conocida.');
+        if(bLib)bLib.disabled=false;
+        if(bDisk)bDisk.disabled=false;
+        if(bCancel)bCancel.disabled=false;
+        if(h)h.textContent='Borrar canción';
+        return;
+      }
+      if(typeof t.r==='number'&&t.r>=0&&typeof roots!=='undefined'&&roots[t.r]){
+        try{
+          const perm=await roots[t.r].requestPermission({ mode:'readwrite' });
+          if(perm!=='granted'){
+            window.showAlert('Permiso de escritura denegado.');
+            if(bLib)bLib.disabled=false;
+            if(bDisk)bDisk.disabled=false;
+            if(bCancel)bCancel.disabled=false;
+            if(h)h.textContent='Borrar canción';
+            return;
+          }
+        }catch(e){}
+      }
+      if(window.onda&&window.onda.fileDelete){
+        const r=await window.onda.fileDelete(PF,p);
+        if(!r||!r.ok){
+          window.showAlert('No se pudo borrar: '+((r&&r.error)||'desconocido'));
+          if(bLib)bLib.disabled=false;
+          if(bDisk)bDisk.disabled=false;
+          if(bCancel)bCancel.disabled=false;
+          if(h)h.textContent='Borrar canción';
+          return;
+        }
+      }
+    }
+    if(mode==='lib')ocultarCancion(t); lib=lib.filter(x=>x!==t);
+    q=q.filter(x=>x!==t);
+    if(q[ci]===t){ A.pause(); A.src=''; ci=-1; }
+    if(typeof save==='function')save();
+    if(typeof render==='function')render();
+    if(typeof ibar==='function')ibar();
+  }catch(e){
+    window.showAlert('Error: '+(e&&e.message||e));
+  }
+  if(dlg)dlg.close();
+  _delSong=null;
+}
+
+document.addEventListener('click',e=>{
+  // Click en el boton borrar (dentro del dialog Editar)
+  if(e.target.closest('#e-del')){
+    e.stopPropagation();
+    e.preventDefault();
+    if(!et)return;
+    _delSong=et;
+    const dlg=document.getElementById('deld');
+    const nm=document.getElementById('deld-name');
+    const h=document.getElementById('deld-h');
+    // Cerrar el dialog de editar antes para no anidar modales
+    const ed=document.getElementById('ed');
+    if(ed&&ed.open)ed.close();
+    if(nm)nm.textContent=(_delSong.t||'')+(_delSong.a?' — '+_delSong.a:'');
+    if(h)h.textContent='Borrar canción';
+    if(dlg)dlg.showModal();
+    return;
+  }
+  if(e.target.closest('#deld-cancel')){ doDelete('cancel'); }
+  else if(e.target.closest('#deld-lib')){ doDelete('lib'); }
+  else if(e.target.closest('#deld-disk')){ doDelete('disk'); }
+},true);
+/* Canciones quitadas "solo de la app": no vuelven al reescanear */
+const _OCK='onda.ocultas.'+PF;
+function ocultasGet(){try{return new Set(JSON.parse(localStorage.getItem(_OCK)||'[]'))}catch(e){return new Set()}}
+function ocultarCancion(t){if(!t||!t.u)return;const s=ocultasGet();s.add(t.u);try{localStorage.setItem(_OCK,JSON.stringify([...s]))}catch(e){console.error('Onda: ocultas',e)}}
+=== FIN: js\delete.js ===
+=== ARCHIVO: js\core.js ===
+/* Estado global, almacenamiento (IndexedDB/localStorage), tema */
+const PF=localStorage.getItem('onda.pf')||'default',SK=PF=='default'?'onda':'onda.'+PF,PFS=JSON.parse(localStorage.getItem('onda.profiles')||'[{"id":"default","name":"Principal"}]'),saveP=()=>localStorage.setItem('onda.profiles',JSON.stringify(PFS));
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],A=new Audio(),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const AUD=/\.(mp3|mpeg|mpga|flac|m4a|aac|ogg|oga|opus|wav|weba)$/i,PRE={Plano:[0,0,0,0,0,0,0,0,0,0],Graves:[6,5,4,2,0,0,0,0,0,0],Voz:[-2,-1,0,2,4,4,3,1,0,-1],Rock:[4,3,1,-1,-2,0,2,3,4,4],Electrónica:[5,4,1,0,-2,2,1,3,4,5],Acústico:[3,3,2,1,1,1,2,2,3,2]},FQ=['32','64','125','250','500','1k','2k','4k','8k','16k'];
+let lib=[],roots=[],q=[],ci=-1,view='songs',ctx,N={},cur=[],srch={s:'',o:'t',fk:'',fv:''},iOpen='',tmrId=0,tmrEnd=0,S=Object.assign({hue:330,amo:0,eco:0,eq:Array(10).fill(0),bass:0,wid:1,pre:1,eqauto:1,fade:2,norm:1},JSON.parse(localStorage.getItem(SK)||'{}'));
+const db=new Promise(r=>{const o=indexedDB.open(PF=='default'?'onda':'onda-'+PF,1);o.onupgradeneeded=()=>o.result.createObjectStore('k');o.onsuccess=()=>r(o.result)});
+const kv=async(m,k,v)=>{const d=await db;return new Promise(r=>{const s=d.transaction('k',m=='get'?'readonly':'readwrite').objectStore('k'),x=m=='get'?s.get(k):s.put(v,k);x.onsuccess=()=>r(x.result)})};
+const save=()=>kv('put','lib',lib.filter(t=>t.r>=0||t.u).map(({f,...t})=>t)),saveS=()=>localStorage.setItem(SK,JSON.stringify(S));
+const fmt=s=>isFinite(s)?Math.floor(s/60)+':'+('0'+Math.floor(s%60)).slice(-2):'0:00';
+function theme(){document.documentElement.style.setProperty('--h',S.hue);document.body.classList.toggle('amo',!!S.amo);document.body.classList.toggle('eco',!!S.eco)}
+
+=== FIN: js\core.js ===
+=== ARCHIVO: js\native.js ===
+/* Capa nativa: escaneo de carpetas, deteccion de cambios y teclas multimedia */
+(() => {
+  if (!window.onda) return;
+  const U = p => 'onda://app/media?p=' + encodeURIComponent(p);
+  const busy = new Set();
+  const _addingUrls = new Set();
+  let _isScanning = false; // Bloqueo global absoluto
+
+  /* ---- Fase 9: minimos del escaneo (duracion y peso) y audios que no son musica ---- */
+  const leeNum = (k, def, lo, hi) => { try { const v = parseInt(localStorage.getItem(k), 10); if (v >= lo && v <= hi) return v; } catch (e) {} return def; };
+  const minSeg = () => leeNum('onda_min_sec', 45, 0, 600);
+  const minKb = () => leeNum('onda_min_kb', 250, 0, 20480);
+  const BASURA_DIR = /(^|[\\/])(whatsapp[^\\/]*|recordings?|voice\s*(notes?|recorder|memos?)|calls?|notifications?|ringtones?|alarms?|notas?\s+de\s+voz|telegram audio)([\\/]|$)/i;
+  const BASURA_NOM = /^(AUD|PTT)-\d{6,}|-WA\d{3,}/i;
+  const esDescargas = dir => /[\\/]Onda[\\/][\w-]+$/i.test(dir); // lo que baja Onda siempre entra
+  const _excl = new Set();
+  const firma = () => minSeg() + '|' + minKb() + '|';
+
+  // Duracion de un audio leyendo solo sus datos iniciales (si no se puede leer, devuelve 0 y la cancion entra)
+  const durOf = u => new Promise(res => {
+    const a = new Audio();
+    let fin = false, t = 0;
+    const cierra = d => { if (fin) return; fin = true; clearTimeout(t); try { a.removeAttribute('src'); a.load(); } catch (e) {} res(d); };
+    t = setTimeout(() => cierra(0), 4000);
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => cierra(isFinite(a.duration) ? a.duration : 0);
+    a.onerror = () => cierra(0);
+    a.src = u;
+  });
+
+  // Quita notas de voz, audios de WhatsApp y los archivos mas livianos que el minimo (solo canciones nuevas)
+  async function filtrar(dir, lista) {
+    if (!lista.length || esDescargas(dir)) return lista;
+    const f = firma();
+    let r = lista.filter(p => {
+      if (_excl.has(f + p)) return false;
+      const rel = p.slice(dir.length);
+      const i = Math.max(rel.lastIndexOf('\\'), rel.lastIndexOf('/'));
+      const malo = BASURA_DIR.test(rel.slice(0, i + 1)) || BASURA_NOM.test(rel.slice(i + 1));
+      if (malo) _excl.add(f + p);
+      return !malo;
+    });
+    const kb = minKb();
+    if (kb > 0 && r.length && typeof onda.sizes === 'function') {
+      const quedan = [];
+      for (let i = 0; i < r.length; i += 400) {
+        const trozo = r.slice(i, i + 400);
+        let tam = [];
+        try { tam = (await onda.sizes(PF, trozo)) || []; } catch (e) {}
+        trozo.forEach((p, j) => {
+          if (tam[j] >= 0 && tam[j] < kb * 1024) _excl.add(f + p); else quedan.push(p);
+        });
+      }
+      r = quedan;
+    }
+    return r;
+  }
+
+  async function sync(dir, force = false) {
+    if (_isScanning && !force) return; // Si ya hay un escaneo, ignorar
+    if (busy.has(dir)) return; 
+    
+    busy.add(dir); 
+    _isScanning = true;
+
+    try {
+      const ps = await onda.scan(PF, dir); 
+      $('#st').textContent = ps.length ? 'Encontrados ' + ps.length + ' archivos de audio…' : 'Sin audio en ' + dir.split(/[\\/]/).pop(); 
+      const now = new Set(ps.map(U)), have = new Set(lib.filter(t => t.d === dir).map(t => t.u));
+      lib = lib.filter(t => t.d !== dir || now.has(t.u));
+      const oc = ocultasGet(); window.__ocultasVistas = (window.__ocultasVistas || 0) + ps.filter(p => oc.has(U(p))).length;
+      let add = ps.filter(p => !have.has(U(p)) && !oc.has(U(p)));
+      add = await filtrar(dir, add);
+      let i = 0, n = 0;
+      const ms = minSeg(), descargas = esDescargas(dir), fm = firma();
+      
+      const w = async () => {
+        while (i < add.length) {
+          const p = add[i++], u = U(p), b = p.split(/[\\/]/).pop().replace(/\.\w+$/, ''), m = b.match(/^(.+?) - (.+)$/);
+          
+          // Evitar que dos hilos guarden la misma canción
+          if (_addingUrls.has(u) || lib.some(x => x.u === u)) continue;
+          _addingUrls.add(u);
+
+          try {
+            let corta = false;
+            if (ms > 0 && !descargas) {
+              const d = await durOf(u);
+              if (d > 0 && d < ms) { corta = true; _excl.add(fm + p); }
+            }
+            if (!corta) {
+              const g = (await onda.tags(PF, p)) || {};
+              if (!lib.some(x => x.u === u)) {
+                let cv = '';
+                if (g.picture) {
+                  try {
+                    const blob = new Blob([new Uint8Array(g.picture.data)], {type: g.picture.format});
+                    cv = await new Promise((resolve) => {
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 300; canvas.height = 300;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, 300, 300);
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                      };
+                      img.onerror = () => resolve('');
+                      img.src = URL.createObjectURL(blob);
+                    });
+                  } catch(e) {}
+                }
+                lib.push({ id: crypto.randomUUID(), r: -2, d: dir, u, p: [p], t: g.title || (m ? m[2] : b), a: g.artist || (m ? m[1] : 'Artista desconocido'), al: g.album || 'Álbum desconocido', n: parseInt(g.track) || 0, fav: 0, at: Date.now(), cv });
+              }
+            }
+          } finally {
+            _addingUrls.delete(u);
+          }
+          
+          $('#st').textContent = 'Escaneando ' + (++n) + '/' + add.length;
+          if (n % 60 === 0) render();
+        }
+      };
+      await Promise.all([w(), w(), w(), w()]);
+      
+      $('#st').textContent = lib.length + ' canciones';
+      save(); render();
+    } catch (e) { 
+      $('#st').textContent = 'Error: ' + (e && e.message || e); 
+    } finally { 
+      busy.delete(dir); 
+      _isScanning = false; 
+    }
+  }
+
+  $('#add').onclick = async () => { 
+    const d = await onda.add(PF); 
+    if (d) { 
+      window.FOL = await onda.folders(PF); 
+      sync(d, true); 
+    } 
+  };
+
+  /* ---- Boton Reescanear: gira mientras escanea y al final dice "Escaneado" ---- */
+  let _rescT = 0;
+  function textoBoton(btn) {
+    const tw = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
+    let n, ultimo = null;
+    while ((n = tw.nextNode())) { if (n.nodeValue.trim()) ultimo = n; }
+    return ultimo;
+  }
+  function rescUI(estado) {
+    const btn = document.getElementById('rescan');
+    if (!btn) return;
+    clearTimeout(_rescT);
+    const n = textoBoton(btn);
+    if (!n) return;
+    if (n.__orig === undefined) n.__orig = n.nodeValue;
+    if (estado === 'busy') n.nodeValue = ' Escaneando…';
+    else if (estado === 'done') { n.nodeValue = ' ✓ Escaneado'; _rescT = setTimeout(() => rescUI('idle'), 2600); }
+    else n.nodeValue = n.__orig;
+  }
+
+  $('#rescan').onclick = async () => {
+    const btn = document.getElementById('rescan');
+    const st = document.getElementById('st');
+    if(!window.FOL || !window.FOL.length){ window.showAlert('No hay carpetas añadidas todavía'); return; }
+    // Fase 9: antes de escanear, el usuario elige los minimos (duracion y peso)
+    if (typeof window.ondaPedirMinimos === 'function') { const ok = await window.ondaPedirMinimos(); if (!ok) return; }
+    if(btn){ btn.disabled = true; btn.classList.add('spin'); }
+    rescUI('busy');
+    const before = lib.length; window.__ocultasVistas = 0;
+    if(st) st.textContent = 'Escaneando…';
+    let fallo = false;
+    try {
+      for (const dir of window.FOL) await sync(dir, true);
+      if (window.__ocultasVistas > 0 && await window.showConfirm('Hay ' + window.__ocultasVistas + ' canciones que quitaste de la app. ¿Volver a colocarlas?')) { localStorage.removeItem('onda.ocultas.' + PF); for (const dir of window.FOL) await sync(dir, true); }
+      const added = lib.length - before;
+      if(st){
+        st.textContent = (added > 0 ? '✓ ' + added + (added === 1 ? ' nueva · ' : ' nuevas · ') : '') + lib.length + ' canciones';
+        setTimeout(() => { if(st && st.textContent.indexOf('✓') === 0) st.textContent = lib.length + ' canciones'; }, 3000);
+      }
+    } catch(e){
+      fallo = true;
+      if(st) st.textContent = 'Error al escanear';
+    }
+    if(btn){ btn.disabled = false; btn.classList.remove('spin'); }
+    rescUI(fallo ? 'idle' : 'done');
+  };
+
+  onda.on('changed', d => {
+    if (_isScanning) return; // Ignorar absolutamente todo si estamos escaneando
+    sync(d); 
+  });
+  
+  onda.on('cmd', c => $('#' + c).click());
+  
+  setTimeout(async () => { 
+    window.FOL = await onda.folders(PF); 
+    for (const d of window.FOL) await sync(d, true); 
+  }, 400);
+})();
+=== FIN: js\native.js ===
+=== ARCHIVO: js\lists.js ===
+/* Ayudas para listas: iconos de línea, orden de 7 opciones, fila de canción, marca de la que suena, agrupar */
+window.__ondaSel = window.__ondaSel || { on: false, set: new Set() };
+window.__ondaSeed = window.__ondaSeed || Math.floor(Math.random() * 2147483647);
+
+/* ---- Iconos de línea (mismo estilo que icons.js) ---- */
+const _SVP = {
+  wand: '<path d="M5 19L17 7"/><path d="M15 5l4 4"/><path d="M19 2v3M17.5 3.5h3M6 3v2M5 4h2M20 14v2M19 15h2"/>',
+  more: '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  locate: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+  select: '<path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9"/>',
+  az: '<path d="M4 6h10M4 12h7M4 18h4"/><path d="M18 5v14M15 16l3 3 3-3"/>',
+  za: '<path d="M4 6h4M4 12h7M4 18h10"/><path d="M18 19V5M15 8l3-3 3 3"/>',
+  recent: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+  old: '<path d="M7 4h10M7 20h10"/><path d="M8 4c0 4 4 5 4 8s-4 4-4 8M16 4c0 4-4 5-4 8s4 4 4 8"/>',
+  artist: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/>',
+  size: '<path d="M5 20V11M12 20V4M19 20v-6"/>',
+  random: '<path d="M3 7h3.5c2 0 3.2 1 4.3 2.8l2.4 4.4c1.1 1.8 2.3 2.8 4.3 2.8H21"/><path d="M18 14l3 3-3 3"/><path d="M3 17h3.5c1.1 0 2-.4 2.8-1.2"/><path d="M13 8.2C14 7.4 15.1 7 16.5 7H21"/><path d="M18 4l3 3-3 3"/>',
+  play: '<path d="M7 4.5v15l12-7.5z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  heart: '<path d="M12 20.5l-1.2-1.1C6 15.3 3 12.6 3 9.2 3 6.6 5 4.5 7.6 4.5c1.5 0 3 .7 4.4 2.2 1.4-1.5 2.9-2.2 4.4-2.2C19 4.5 21 6.6 21 9.2c0 3.4-3 6.1-7.8 10.2L12 20.5z"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>'
+};
+window.ondaSv = function (n, s) {
+  const p = _SVP[n];
+  if (!p) return '';
+  const z = s || '1em';
+  return '<svg data-ic="' + n + '" viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+};
+
+/* ---- Orden (7 opciones) ---- */
+const ORD = [
+  ['az', 'A-Z', 'Por título, de la A a la Z'],
+  ['za', 'Z-A', 'Por título, de la Z a la A'],
+  ['recent', 'Reciente', 'Las agregadas más nuevas primero'],
+  ['old', 'No reciente', 'Las más antiguas primero'],
+  ['artist', 'Artista', 'Por nombre de artista'],
+  ['size', 'Tamaño', 'Las más pesadas primero'],
+  ['random', 'Aleatorio', 'Una mezcla distinta cada vez']
+];
+const ORD_OLD = { t: 'az', a: 'artist', al: 'az', at: 'recent' }; // valores de versiones anteriores
+function ordKnown(o) { if (ORD_OLD[o]) return ORD_OLD[o]; return ORD.some(x => x[0] === o) ? o : 'az'; }
+try { srch.o = ordKnown(localStorage.getItem('onda.sort.' + PF) || srch.o); } catch (e) { srch.o = 'az'; }
+
+function ondaNorm(s) {
+  s = String(s == null ? '' : s).trim();
+  try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+  return s.toLowerCase();
+}
+const _RL = (() => { try { return new RegExp('\\p{L}', 'u'); } catch (e) { return null; } })();
+/* 0 = números, 1 = símbolos, 2 = letras (incluye kana y kanji), 3 = vacío */
+function _cls(s) {
+  const c = s.charAt(0);
+  if (!c) return 3;
+  if (c >= '0' && c <= '9') return 0;
+  if (_RL ? _RL.test(c) : c.toLowerCase() !== c.toUpperCase()) return 2;
+  return 1;
+}
+function _cmpText(a, b, rev) {
+  const A = ondaNorm(a), B = ondaNorm(b), ca = _cls(A), cb = _cls(B);
+  if (ca !== cb) return ca - cb;
+  let r;
+  try { r = A.localeCompare(B, 'es', { numeric: true, sensitivity: 'base' }); } catch (e) { r = A < B ? -1 : (A > B ? 1 : 0); }
+  return rev ? -r : r;
+}
+function _hash(str) {
+  let x = 2166136261;
+  for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); }
+  return x >>> 0;
+}
+function _tid(t) { return String(t.id || t.u || t.t); }
+function ondaSort(list, o) {
+  const c = list.slice();
+  o = ordKnown(o);
+  if (o === 'az') c.sort((a, b) => _cmpText(a.t, b.t, false) || _cmpText(a.a, b.a, false));
+  else if (o === 'za') c.sort((a, b) => _cmpText(a.t, b.t, true) || _cmpText(a.a, b.a, false));
+  else if (o === 'recent') c.sort((a, b) => ((b.at || 0) - (a.at || 0)) || _cmpText(a.t, b.t, false));
+  else if (o === 'old') c.sort((a, b) => ((a.at || 0) - (b.at || 0)) || _cmpText(a.t, b.t, false));
+  else if (o === 'artist') c.sort((a, b) => _cmpText(a.a, b.a, false) || _cmpText(a.t, b.t, false));
+  else if (o === 'size') c.sort((a, b) => ((b.sz || 0) - (a.sz || 0)) || _cmpText(a.t, b.t, false));
+  else if (o === 'random') { const sd = String(window.__ondaSeed); c.sort((a, b) => _hash(_tid(a) + ':' + sd) - _hash(_tid(b) + ':' + sd)); }
+  return c;
+}
+
+/* ---- Lista ---- */
+const key = { t: 't', a: 'a', al: 'al' };
+function row(t, i) {
+  const p = q[ci] === t;
+  const nu = (t.at || 0) > Date.now() - 30 * 60 * 1000; // "Nuevo": máximo 30 minutos
+  const s = window.__ondaSel, on = s.on && s.set.has(t);
+  return `<div class="row${p ? ' pl' : ''}${on ? ' sel' : ''}" data-i="${i}"><span class="chk" aria-hidden="true">${ondaSv('check', '18px')}</span><div class="th"${t.cv ? ` style="background:center/cover url('${t.cv}')"` : ''}>${t.cv ? '' : esc(t.t[0] || '♪').toUpperCase()}</div><b>${esc(t.t)}${nu ? '<i class="onda-new">Nuevo</i>' : ''}</b><span class="al">${esc(t.a)} · ${esc(t.al)}</span><button class="fv${t.fav ? ' on' : ''}" data-f="${i}" aria-label="Favorita" title="Favorita">${ondaSv('heart')}</button><button class="fv" data-m="${i}" aria-label="Más opciones" title="Más opciones">${ondaSv('more')}</button></div>`;
+}
+function mark() { document.querySelectorAll('.row').forEach(r => r.classList.toggle('pl', cur[r.dataset.i] === q[ci])); const _hm = ci >= 0 && q[ci] && !playerHidden; $('.wrap').classList.toggle('np-on', _hm && /^(songs|favs|queue)$/.test(view)); }
+function group(k) { const m = new Map; cur.forEach(t => { const g = k == 'al' ? t.al + '|' + t.a : t.a; (m.get(g) || m.set(g, []).get(g)).push(t); }); return [...m.values()]; }
+=== FIN: js\lists.js ===
+

@@ -5,9 +5,11 @@ contextBridge.exposeInMainWorld('onda', {
   remove: (pf, d) => ipcRenderer.invoke('folders:remove', pf, d),
   scan: (pf, d) => ipcRenderer.invoke('scan', pf, d),
   tags: (pf, f) => ipcRenderer.invoke('tags', pf, f),
+  sizes: (pf, f) => ipcRenderer.invoke('files:sizes', pf, f),
   openExternal: url => ipcRenderer.invoke('open-external', url),
   fileDelete: (pf, p) => ipcRenderer.invoke('file:delete', pf, p),
   fetchImage: url => ipcRenderer.invoke('fetch-image', url),
+  webJson: url => ipcRenderer.invoke('web:json', url),
   fetchLyrics: (track, artist, album, dur) => ipcRenderer.invoke('lyrics:fetch', track, artist, album, dur),
   translate: (text, lang) => ipcRenderer.invoke('translate:text', text, lang),
   transliterate: (text, lang) => ipcRenderer.invoke('transliterate:text', text, lang),
@@ -23,13 +25,13 @@ contextBridge.exposeInMainWorld('onda', {
     removeFolder: (dir) => ipcRenderer.invoke('videos:remove-folder', dir),
     openFolder: (dir) => ipcRenderer.invoke('videos:open-folder', dir)
   },
-  download: { 
-    start: (url, pf, title, includeCover) => ipcRenderer.invoke('download:start', url, pf, title, includeCover), 
-    list: () => ipcRenderer.invoke('download:list'), 
-    history: (pf) => ipcRenderer.invoke('download:history', pf), 
-    cancel: (id) => ipcRenderer.invoke('download:cancel', id), 
-    remove: (pf, id) => ipcRenderer.invoke('download:remove', pf, id), 
-    openFolder: (pf) => ipcRenderer.invoke('download:open-folder', pf) 
+  download: {
+    start: (url, pf, title, includeCover) => ipcRenderer.invoke('download:start', url, pf, title, includeCover),
+    list: () => ipcRenderer.invoke('download:list'),
+    history: (pf) => ipcRenderer.invoke('download:history', pf),
+    cancel: (id) => ipcRenderer.invoke('download:cancel', id),
+    remove: (pf, id) => ipcRenderer.invoke('download:remove', pf, id),
+    openFolder: (pf) => ipcRenderer.invoke('download:open-folder', pf)
   },
   youtubeSearch: q => ipcRenderer.invoke('youtube:search', q),
   youtubeSearchList: q => ipcRenderer.invoke('youtube:searchList', q),
@@ -38,5 +40,9 @@ contextBridge.exposeInMainWorld('onda', {
   getYouTubeHost: () => ipcRenderer.invoke('get-youtube-host'),
   getAudioStream: (url) => ipcRenderer.invoke('audio:get-stream', url),
   getAudioDirectUrl: (url) => ipcRenderer.invoke('audio:getDirectUrl', url),
+  qrStart: () => ipcRenderer.invoke('qr:start'),
+  qrStop: () => ipcRenderer.invoke('qr:stop'),
+  lanInfo: () => ipcRenderer.invoke('lan:info'),
+  qrLog: (fn) => ipcRenderer.on('qr:log', (_, msg) => fn(msg)),
   on: (ch, fn) => ipcRenderer.on(ch, (_, a) => fn(a))
 });

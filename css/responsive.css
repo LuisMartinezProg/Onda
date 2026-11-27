@@ -1,0 +1,63 @@
+/* Diseño adaptable: al reducir la ventana se conserva la barra lateral a la izquierda
+   y el reproductor pasa a una barra compacta abajo. Reemplaza el modo "celular" anterior. */
+#app{grid-template-rows:minmax(0,1fr)}
+
+/* ---------- Mediana (hasta 1000 px): barra lateral y panel un poco más angostos ---------- */
+@media (max-width:1000px){
+  #app{grid-template-columns:176px 1fr}
+  .wrap.np-on{grid-template-columns:minmax(0,1fr) 290px}
+  .wrap.np-on #np{width:290px}
+}
+
+/* ---------- Pequeña (hasta 860 px): reproductor compacto abajo ---------- */
+@media (max-width:860px){
+  #app{grid-template-columns:156px 1fr}
+  .side{padding:16px 8px;overflow-x:hidden;overflow-y:auto}
+  .side h1{font-size:22px;padding:0 8px 10px}
+  .side button{padding:9px 10px;font-size:13px}
+
+  .wrap.np-on{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+  .wrap.np-on #np{width:100%;height:auto !important;max-height:38vh;flex-direction:row !important;flex-wrap:wrap !important;align-items:center !important;justify-content:space-between;gap:6px 16px !important;padding:10px 16px !important;border-left:0;border-top:1px solid var(--ed)}
+
+  #np .now{flex:1 1 170px;min-width:0;width:auto;align-items:flex-start;text-align:left}
+  #np .now .cv{display:none !important}
+  #np #bt,#np #ba{text-align:left !important;margin-top:0 !important}
+  #np #lyr-hd,#np #lyr,#np #vz{display:none !important}
+
+  #np .mid{flex:2 1 300px;display:grid !important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center !important;gap:6px 14px !important;width:auto !important;min-width:0}
+  #np .btns{grid-column:1;margin:0 !important}
+  #np .sk{grid-column:2;padding:0 !important}
+  #np .vol{grid-column:3;width:auto !important;margin:0 !important}
+  #np .vol input{width:84px}
+  #np .ibar{flex:0 0 auto;margin:0 !important;padding:0 !important;border-top:0 !important}
+
+  /* Paneles del reproductor (EQ, temporizador, cola): ventanita flotante */
+  .wrap.np-on #ipn:not(:empty){position:fixed !important;top:56px;right:12px;width:min(calc(100vw - 24px),380px) !important;max-height:calc(62vh - 56px) !important;overflow-y:auto !important;z-index:300;margin:0 !important;background:#1b1230 !important;border:1px solid var(--ed);box-shadow:0 14px 40px rgba(0,0,0,.6)}
+}
+
+/* ---------- Angosta (hasta 760 px): lista más limpia ---------- */
+@media (max-width:760px){
+  #app{grid-template-columns:148px 1fr}
+  .row{grid-template-columns:42px 1fr 34px 34px}
+  .row .al{display:none}
+  .eq{height:150px}
+}
+
+/* ---------- Muy angosta (hasta 560 px) ---------- */
+@media (max-width:560px){
+  #app{grid-template-columns:132px 1fr}
+  .side button{padding:8px 8px;font-size:12.5px}
+  #v{padding:0 12px 16px}
+  .top{padding:12px 12px 6px}
+  #np .vol{display:none !important}
+  #np .mid{grid-template-columns:auto minmax(0,1fr)}
+  #v .set-cols,.onda-cards{grid-template-columns:minmax(0,1fr)}
+  .ctl{grid-template-columns:96px 1fr 44px}
+}
+
+/* ---------- Ventana baja: botones de la barra lateral más compactos ---------- */
+@media (max-height:640px){
+  .side{padding-top:12px;padding-bottom:12px;gap:2px}
+  .side button{padding-top:7px;padding-bottom:7px}
+  .side h1{padding-bottom:6px}
+}

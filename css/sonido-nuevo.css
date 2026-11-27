@@ -1,0 +1,20 @@
+/* Sonido: dos tarjetas con tinte, medidor de decibeles y barras del diseño base */
+.snd{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+.snd-card{padding:18px;border-radius:18px;background:var(--card-tint,rgba(24,18,40,.55));border:1px solid var(--ed,rgba(255,255,255,.14))}
+.snd-card h3{margin:0 0 12px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.snd-card .pre{margin-bottom:12px}
+.snd-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(110px,1.3fr) 58px;align-items:center;gap:12px;padding:12px 0}
+.snd-row+.snd-row{border-top:1px solid rgba(255,255,255,.06)}
+.snd-row .sl b{display:block;font-size:14px}
+.snd-row .sl small{color:var(--dim);font-size:11px}
+.snd-row .sv{text-align:right;font-variant-numeric:tabular-nums;color:var(--gold,#D4AF37);font-size:13px}
+.snd-row input[type=range]{width:100%}
+.snd-meter{margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)}
+.snd-meter .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:12px;color:var(--dim)}
+.snd-meter .mh b{font-size:18px;color:var(--ink,#fff);font-variant-numeric:tabular-nums}
+.snd-meter .mb{position:relative;height:12px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.snd-meter .mb i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:linear-gradient(90deg,var(--gold-deep,#9c7d1f),var(--gold,#D4AF37),var(--gold-light,#ecd06f));transition:width .06s linear}
+.snd-meter .mb i.hot{background:linear-gradient(90deg,var(--gold,#D4AF37),#ff6b5e)}
+.snd-meter .mb u{position:absolute;top:0;bottom:0;width:2px;background:#fff;opacity:.85;text-decoration:none;left:0}
+.snd-meter .ms{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--dim)}
+@media (max-width:900px){.snd{grid-template-columns:1fr}}

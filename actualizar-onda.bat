@@ -30,7 +30,7 @@ if exist "%APPDATA%\Onda\GPUCache" rmdir /s /q "%APPDATA%\Onda\GPUCache" 2>nul
 echo   OK.
 echo.
 
-echo [4/5] Compilando nueva version (puede tardar 3-7 min)...
+echo [4/5] Compilando Onda (puede tardar 3-7 min)...
 echo.
 call npm run dist
 if errorlevel 1 (

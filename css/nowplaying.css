@@ -30,7 +30,7 @@ body.pause #np .cv,body.eco #np .cv{animation:none}
 @keyframes fl{50%{transform:translateY(-6px) scale(1.01)}}
 #np h3{font:900 20px var(--ft);text-align:center}#np p{color:var(--dim);text-align:center;font-size:12px}
 #vz{width:100%;height:60px}
-@media(max-width:760px){#app{grid-template-columns:1fr}.side{grid-row:1;flex-direction:row;overflow-x:auto;padding:10px;border:0}.side h1,#st{display:none}.side button{white-space:nowrap}.side .add{margin:0 0 0 auto}main{grid-template-rows:60px 1fr}.wrap{grid-template-columns:1fr}#np{border-left:0;border-top:1px solid var(--ed)}.row{grid-template-columns:42px 1fr 34px 34px}.eq{height:150px}}
+/* (modo celular anterior reemplazado por css/responsive.css) */
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 

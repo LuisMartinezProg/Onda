@@ -10,6 +10,9 @@ try {
 } catch (_) {}
 
 const path = require('path'), fs = require('fs'), { pathToFileURL } = require('url'), { Readable } = require('stream');
+const os = require('os');
+const QRCode = require('qrcode');
+const Busboy = require('busboy');
 
 // Una sola Onda: si ya hay una abierta (aunque esté en la bandeja), la nueva no crea nada, solo muestra la existente
 const gotLock = app.requestSingleInstanceLock();
@@ -174,6 +177,16 @@ ipcMain.handle('open-external', (_, url) => {
   if (!/^https:\/\/((www\.)?google\.[a-z.]+\/search|(www\.)?youtube\.com\/|youtu\.be\/)/.test(u)) return false;
   shell.openExternal(u); return true;
 });
+// Búsqueda en línea de solo lectura: portadas y géneros (solo estos servidores, solo HTTPS)
+ipcMain.handle('web:json', async (_, url) => {
+  try {
+    const u = new URL(String(url || ''));
+    if (u.protocol !== 'https:' || !/^(itunes\.apple\.com|api\.deezer\.com)$/.test(u.hostname)) return null;
+    const r = await net.fetch(u.toString(), { headers: { 'User-Agent': 'Onda' } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+});
 ipcMain.handle('fetch-image', async (_, url) => {
   if (!/^https?:\/\//i.test(String(url || ''))) return null;
   try {
@@ -208,6 +221,18 @@ ipcMain.handle('scan', async (_, pf, dir) => {
   return walkDir(dir);
 });
 
+// Fase 9: tamaño de los archivos (peso mínimo al reescanear); solo dentro de las carpetas del perfil
+ipcMain.handle('files:sizes', async (_, pf, files) => {
+  const carpetas = fo(pf);
+  const lista = Array.isArray(files) ? files.slice(0, 2000) : [];
+  return Promise.all(lista.map(async f => {
+    try {
+      f = String(f || '');
+      if (!carpetas.some(d => inside(f, d))) return -1;
+      return (await fs.promises.stat(f)).size;
+    } catch { return -1; }
+  }));
+});
 ipcMain.handle('tags', (_, pf, file) => new Promise(res => {
   file = String(file || '');
   if (!jmt || !file || !fo(pf).some(f => inside(file, f))) return res({});
@@ -786,8 +811,7 @@ ipcMain.handle('file:delete', async (_, profile, filePath) => {
       await shell.trashItem(filePath);
       return { ok: true, trashed: true };
     } catch {
-      await fs.promises.unlink(filePath);
-      return { ok: true, trashed: false };
+      return { ok: false, error: 'No se pudo enviar a la Papelera de reciclaje' };
     }
   } catch (e) {
     return { ok: false, error: String(e && e.message || e) };
@@ -927,6 +951,363 @@ function startLocalServer() {
   });
 }
 
+
+
+// ==========================================
+// SECCIÓN QR: COMPARTIR DESDE EL CELULAR
+// ==========================================
+let qrServer = null, qrToken = null, qrUrl = null;
+
+function getLocalIP() {
+  const nets = os.networkInterfaces();
+  const virtual = ['vEthernet', 'VirtualBox', 'VMware', 'Docker', 'VPN', 'WSL', 'Loopback'];
+  let fallback = null;
+  for (const name of Object.keys(nets)) {
+    const isVirtual = virtual.some(v => name.toLowerCase().includes(v.toLowerCase()));
+    for (const net of nets[name]) {
+      if (net.family !== 'IPv4' || net.internal) continue;
+      if (name.toLowerCase().includes('wi-fi') || name.toLowerCase().includes('ethernet')) {
+        if (!isVirtual) return net.address;
+      }
+      if (!isVirtual && !fallback) fallback = net.address;
+    }
+  }
+  return fallback || '127.0.0.1';
+}
+
+function PAGINA_QR(token) {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subir a Onda</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#140e24;color:#f2eefc;font-family:system-ui,sans-serif;display:flex;justify-content:center;padding:20px}
+.card{width:100%;max-width:440px;text-align:center}
+h1{font-size:24px;margin:12px 0 4px}
+p{color:#a99fc4;font-size:14px;margin:0 0 20px}
+.btn{display:block;width:100%;padding:18px;border-radius:16px;background:#D4AF37;color:#1a1330;font-size:18px;font-weight:700;position:relative;overflow:hidden}
+.btn input{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#resumen{margin-top:16px;font-size:14px;color:#f2eefc}
+#lista{margin-top:16px;text-align:left}
+.fila{background:#1f1636;border-radius:12px;padding:12px;margin-bottom:10px}
+.nom{font-size:14px;word-break:break-all}
+.barra{height:6px;background:#33284f;border-radius:3px;margin-top:8px;overflow:hidden}
+.barra i{display:block;height:100%;width:0;background:#D4AF37}
+.est{font-size:12px;color:#a99fc4;margin-top:6px}
+.ok .est{color:#5ee0a0}
+.mal .est{color:#ff8a8a}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Subir a Onda</h1>
+    <p>Toca el boton y elige tus canciones. Se suben solas a la PC.</p>
+    <label class="btn">Elegir canciones
+      <input id="f" type="file" multiple>
+    </label>
+    <div id="resumen">Cargando...</div>
+    <div id="lista"></div>
+  </div>
+<script>
+var TOKEN = '${token}';
+var f = document.getElementById('f');
+var lista = document.getElementById('lista');
+var resumen = document.getElementById('resumen');
+var ocupado = false;
+resumen.textContent = 'Pagina lista. Toca el boton y elige tus canciones.';
+function rep(m) { try { var q = new XMLHttpRequest(); q.open('GET', '/qr-log?token=' + encodeURIComponent(TOKEN) + '&m=' + encodeURIComponent(m)); q.setRequestHeader('bypass-tunnel-reminder', '1'); q.send(); } catch (e) {} }
+window.onerror = function (m, s, l) { resumen.textContent = 'Error en la pagina: ' + m + ' (linea ' + l + ')'; rep('error de pagina: ' + m + ' linea ' + l); };
+rep('pagina cargada');
+document.addEventListener('visibilitychange', function () { rep('visibilidad: ' + document.visibilityState); });
+window.addEventListener('focus', function () {
+  setTimeout(function () {
+    rep('focus: archivos=' + (f.files ? f.files.length : -1));
+    if (f.files && f.files.length) { f.dispatchEvent(new Event('change')); }
+  }, 800);
+});
+f.addEventListener('click', function () { rep('toco el boton'); });
+f.addEventListener('input', function () { rep('input disparado'); });
+
+function subir(a, fin) {
+  var fila = document.createElement('div');
+  fila.className = 'fila';
+  fila.innerHTML = '<div class="nom"></div><div class="barra"><i></i></div><div class="est">Subiendo...</div>';
+  fila.querySelector('.nom').textContent = a.name;
+  lista.appendChild(fila);
+  var barra = fila.querySelector('i');
+  var est = fila.querySelector('.est');
+  function mal(msg) { fila.className = 'fila mal'; est.textContent = 'Error: ' + msg; rep('fallo: ' + msg); fin(false); }
+  var fd = new FormData();
+  fd.append('files', a, a.name);
+  var x = new XMLHttpRequest();
+  x.open('POST', '/qr-upload?token=' + encodeURIComponent(TOKEN));
+  x.setRequestHeader('bypass-tunnel-reminder', '1');
+  x.upload.onprogress = function (e) {
+    if (e.lengthComputable) {
+      var p = Math.round(e.loaded * 100 / e.total);
+      barra.style.width = p + '%';
+      est.textContent = 'Subiendo... ' + p + '%';
+    }
+  };
+  x.onload = function () {
+    rep('respuesta de la PC: ' + x.status);
+    var r = null;
+    try { r = JSON.parse(x.responseText); } catch (e) {}
+    if (x.status === 200 && r && r.ok) {
+      barra.style.width = '100%';
+      fila.className = 'fila ok';
+      est.textContent = 'Guardada en la PC';
+      fin(true);
+    } else {
+      mal((r && r.error) || ('La PC no respondio bien (codigo ' + x.status + ')'));
+    }
+  };
+  x.onerror = function () { mal('se perdio la conexion con la PC'); };
+  rep('enviando ' + a.name); x.send(fd);
+}
+
+f.addEventListener('change', function () {
+  var archivos = Array.prototype.slice.call(f.files || []);
+  resumen.textContent = 'Elegiste ' + archivos.length + ' archivo(s).';
+  rep('change: ' + archivos.length + ' archivos, primero: ' + (archivos[0] ? archivos[0].name + ' (' + archivos[0].size + ' bytes)' : 'ninguno'));
+  f.value = '';
+  var exts = ['mp3', 'mpeg', 'mpga', 'flac', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'wav', 'weba'];
+  var todos = archivos.length;
+  archivos = archivos.filter(function (a) { return exts.indexOf(String(a.name).toLowerCase().split('.').pop()) >= 0; });
+  if (todos && !archivos.length) { resumen.textContent = 'Esos archivos no son de musica.'; rep('ninguno es musica'); return; }
+  if (!archivos.length || ocupado) return;
+  ocupado = true;
+  resumen.textContent = 'Subiendo ' + archivos.length + ' cancion(es)...';
+  var i = 0, buenos = 0;
+  function siguiente() {
+    if (i >= archivos.length) {
+      ocupado = false;
+      resumen.textContent = buenos + ' de ' + archivos.length + ' guardadas en la PC';
+      return;
+    }
+    subir(archivos[i++], function (ok) { if (ok) buenos++; siguiente(); });
+  }
+  siguiente();
+});
+</script>
+</body>
+</html>`;
+}function startQRServer() {
+  return new Promise((resolve, reject) => {
+    if (qrServer) { resolve({ url: qrUrl, token: qrToken }); return; }
+    qrToken = Math.random().toString(36).slice(2, 10);
+    const ip = getLocalIP();
+    
+    // Creamos el servidor local normal
+    qrServer = http.createServer((req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
+      const u = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
+      console.log('[QR] Peticion:', req.method, u.pathname);
+      if (u.searchParams.get('token') !== qrToken) { res.writeHead(403); res.end('Token invalido'); return; }
+      
+      if (req.method === 'GET' && u.pathname === '/qr-log') { console.log('[CEL]', String(u.searchParams.get('m') || '').slice(0, 200)); res.writeHead(204); res.end(); return; }
+      if (req.method === 'GET' && u.pathname === '/qr') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(PAGINA_QR(qrToken));
+        return;
+      }
+      
+      if (req.method === 'POST' && u.pathname === '/qr-upload') {
+        const destDir = path.join(app.getPath('music'), 'Onda', 'QR');
+        try { fs.mkdirSync(destDir, { recursive: true }); } catch (e) { console.error(e); }
+
+        const saved = [], pendientes = [], abiertos = [];
+        let fallo = null, respondido = false;
+        const responder = (code, obj) => {
+          if (respondido) return;
+          respondido = true;
+          res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify(obj));
+        };
+        const bb = Busboy({ headers: req.headers, defParamCharset: 'utf8', limits: { fileSize: 500 * 1024 * 1024, files: 50 } });
+
+        bb.on('file', (name, file, info) => {
+          if (!info.filename) { file.resume(); return; }
+          const safe = path.basename(String(info.filename)).replace(/[\\/:*?"<>|]/g, '_').trim() || 'archivo';
+          const dest = path.join(destDir, safe);
+          console.log('[QR] Recibiendo archivo:', safe);
+          const ws = fs.createWriteStream(dest);
+          let truncado = false;
+          file.on('limit', () => { truncado = true; });
+          abiertos.push({ ws, dest });
+          pendientes.push(new Promise((fin) => {
+            ws.on('finish', () => {
+              if (truncado) {
+                try { fs.unlinkSync(dest); } catch {}
+                fallo = 'El archivo es demasiado grande (maximo 500 MB): ' + safe;
+              } else { saved.push(safe); }
+              fin();
+            });
+            ws.on('error', (e) => { fallo = 'No se pudo guardar ' + safe + ': ' + (e.message || e); fin(); });
+          }));
+          file.pipe(ws);
+        });
+
+        bb.on('close', async () => {
+          await Promise.all(pendientes);
+          if (fallo) { responder(500, { ok: false, error: fallo }); return; }
+          try {
+            const folders = fo('default');
+            if (!folders.includes(destDir)) { folders.push(destDir); saveFo('default'); watch(destDir); }
+          } catch (err) { console.error(err); }
+          responder(200, { ok: true, saved });
+          send('changed', destDir);
+        });
+
+        bb.on('error', (err) => {
+          console.error('[QR] Error:', err);
+          responder(500, { ok: false, error: 'Error al recibir el archivo' });
+        });
+
+        req.on('aborted', () => {
+          for (const o of abiertos) { try { o.ws.destroy(); } catch {} setTimeout(() => { try { fs.unlinkSync(o.dest); } catch {} }, 500); }
+        });
+
+        req.pipe(bb);
+        return;
+      }
+      res.writeHead(404); res.end();
+    });
+
+    qrServer.listen(47895, '0.0.0.0', async () => {
+      console.log('[QR] Servidor local listo. Iniciando túnel seguro...');
+      
+      // Iniciar túnel automático con localtunnel
+      try {
+        const localtunnel = require('localtunnel');
+        const tunnel = await localtunnel({ port: 47895 });
+        
+        qrUrl = tunnel.url + '/qr?token=' + qrToken;
+        console.log('[QR] ✅ Túnel HTTPS activo en:', qrUrl);
+        
+        tunnel.on('close', () => { console.log('[QR] Túnel cerrado'); });
+        
+        resolve({ url: qrUrl, token: qrToken });
+      } catch (err) {
+        console.error('[QR] Error al crear túnel, usando IP local:', err);
+        qrUrl = 'http://' + ip + ':47895/qr?token=' + qrToken;
+        resolve({ url: qrUrl, token: qrToken });
+      }
+    });
+    
+    qrServer.on('error', reject);
+  });
+}
+
+function stopQRServer() {
+  if (qrServer) { try { qrServer.close(); } catch {} }
+  qrServer = null; qrUrl = null; qrToken = null;
+}
+
+// ==========================================
+// RECEPTOR POR WIFI: CELULAR -> PC (sin internet ni tunel)
+// ==========================================
+const LAN_PORT = 47896;
+let lanServer = null, _lanCode = null, lanFallos = 0, lanBloqueoHasta = 0;
+
+function lanCode() {
+  if (_lanCode) return _lanCode;
+  const f = path.join(app.getPath('userData'), 'lan-code.txt');
+  try { const c0 = fs.readFileSync(f, 'utf8').trim(); if (/^\d{6}$/.test(c0)) { _lanCode = c0; return c0; } } catch {}
+  const c = String(Math.floor(100000 + Math.random() * 900000));
+  try { fs.writeFileSync(f, c); } catch {}
+  _lanCode = c;
+  return c;
+}
+
+function startLanServer() {
+  if (lanServer) return;
+  const srv = http.createServer((req, res) => {
+    const json = (code, obj) => {
+      if (res.headersSent) return;
+      res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Connection': 'close' });
+      res.end(JSON.stringify(obj));
+    };
+    try {
+      const u = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
+      const dado = String(req.headers['x-onda-code'] || u.searchParams.get('code') || '');
+      const ahora = Date.now();
+      if (lanBloqueoHasta > ahora) { json(429, { ok: false, error: 'Demasiados intentos. Espera un minuto.' }); req.resume(); return; }
+      if (dado !== lanCode()) {
+        lanFallos++;
+        if (lanFallos >= 8) { lanBloqueoHasta = ahora + 60000; lanFallos = 0; }
+        json(403, { ok: false, error: 'Codigo incorrecto' }); req.resume(); return;
+      }
+      lanFallos = 0;
+
+      if (req.method === 'GET' && u.pathname === '/ping') { json(200, { ok: true, equipo: os.hostname() }); return; }
+
+      if (req.method === 'PUT' && u.pathname === '/subir') {
+        let nombre = '';
+        try { nombre = decodeURIComponent(String(req.headers['x-onda-nombre'] || '')); } catch {}
+        const safe = path.basename(nombre).replace(/[\\/:*?"<>|]/g, '_').trim();
+        const total = parseInt(req.headers['content-length'], 10);
+        if (!safe || !AUD.test(safe)) { json(400, { ok: false, error: 'Solo se reciben canciones (mp3, m4a, flac, ogg, wav...)' }); req.resume(); return; }
+        if (!(total > 0)) { json(411, { ok: false, error: 'Falta el tamano del archivo' }); req.resume(); return; }
+        if (total > 1024 * 1024 * 1024) { json(413, { ok: false, error: 'El archivo pasa de 1 GB' }); req.resume(); return; }
+        const dir = path.join(app.getPath('music'), 'Onda', 'QR');
+        try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { console.error(e); }
+        const dest = path.join(dir, safe), tmp = dest + '.parte';
+        try { if (fs.statSync(dest).size === total) { json(200, { ok: true, guardada: safe, repetida: true }); req.resume(); return; } } catch {}
+        const ws = fs.createWriteStream(tmp);
+        let recibido = 0, terminado = false;
+        req.on('data', (c) => { recibido += c.length; });
+        const limpiar = () => { try { ws.destroy(); } catch {} setTimeout(() => { try { fs.unlinkSync(tmp); } catch {} }, 400); };
+        req.on('close', () => { if (!terminado && !req.complete) limpiar(); });
+        req.on('error', limpiar);
+        ws.on('error', (e) => { terminado = true; limpiar(); json(500, { ok: false, error: 'No se pudo guardar: ' + (e.message || e) }); });
+        ws.on('finish', () => {
+          terminado = true;
+          if (recibido !== total) { try { fs.unlinkSync(tmp); } catch {} json(400, { ok: false, error: 'Llego incompleto' }); return; }
+          try { fs.renameSync(tmp, dest); } catch (e) { try { fs.unlinkSync(tmp); } catch {} json(500, { ok: false, error: 'No se pudo terminar de guardar' }); return; }
+          try { const f = fo('default'); if (!f.includes(dir)) { f.push(dir); saveFo('default'); watch(dir); } } catch (err) { console.error(err); }
+          console.log('[LAN] Recibida:', safe);
+          json(200, { ok: true, guardada: safe });
+          send('changed', dir);
+        });
+        req.pipe(ws);
+        return;
+      }
+      json(404, { ok: false, error: 'No existe' });
+    } catch (e) {
+      console.error('[LAN]', e);
+      json(500, { ok: false, error: 'Error interno' });
+    }
+  });
+  srv.requestTimeout = 0;
+  srv.timeout = 0;
+  srv.on('error', (e) => { console.error('[LAN] No se pudo abrir el puerto ' + LAN_PORT + ':', e.code || e); });
+  srv.listen(LAN_PORT, '0.0.0.0', () => {
+    lanServer = srv;
+    console.log('[LAN] Receptor WiFi en http://' + getLocalIP() + ':' + LAN_PORT);
+  });
+}
+
+ipcMain.handle('lan:info', () => ({ ip: getLocalIP(), port: LAN_PORT, code: lanCode(), activo: !!lanServer }));
+app.whenReady().then(() => { try { startLanServer(); } catch (e) { console.error('[LAN]', e); } });
+app.on('will-quit', () => { try { if (lanServer) lanServer.close(); } catch {} });
+
+ipcMain.handle('qr:start', async () => {
+  const info = await startQRServer();
+  const qr = await QRCode.toDataURL(info.url, { width: 280, margin: 2 });
+  return { ...info, qr };
+});
+
+ipcMain.handle('qr:stop', () => { stopQRServer(); return true; });
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1180, height: 760, minWidth: 420, minHeight: 560, show: false,
@@ -1057,7 +1438,7 @@ app.whenReady().then(() => {
 
 app.on('second-instance', () => { if (!win) return; if (win.isMinimized()) win.restore(); showWin(); });
 app.on('before-quit', () => { quitting = true; });
-app.on('will-quit', () => { globalShortcut.unregisterAll(); if (_server) _server.close(); });
+app.on('will-quit', () => { globalShortcut.unregisterAll(); if (_server) _server.close(); if (qrServer) { try { qrServer.close(); } catch {} } });
 // --- PREVISUALIZACIÓN DE 60 SEGUNDOS ---
 ipcMain.handle('video:previewClip', async (event, { url }) => {
   return new Promise((resolve, reject) => {

@@ -1,0 +1,8 @@
+/* Fase 9: Ajustes en tarjetas, en columnas cuando hay espacio */
+#v .set-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start;margin-top:8px}
+#v .set-cols>.onda-card{min-width:0}
+#v .set-cols .onda-card h3{margin:0 0 12px;font-size:13px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--gold);opacity:.9}
+#v .set-cols .set-sub{margin:16px 0 8px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+#v .set-cols .pre{flex-wrap:wrap}
+#onda-min-dlg select{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--ed);background:var(--gl);color:var(--ink);font:inherit}
+#onda-min-dlg select option{color:#000}

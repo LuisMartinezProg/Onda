@@ -1,6 +1,6 @@
 {
   "name": "onda",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Reproductor de música local",
   "main": "arranque.js",
   "author": "Luis Martínez",
@@ -53,14 +53,20 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Onda-Instalador.${ext}",
+      "uninstallDisplayName": "Onda",
+      "deleteAppDataOnUninstall": false
     },
     "compression": "store"
   },
   "dependencies": {
     "@distube/ytdl-core": "^5.2.0",
+    "busboy": "^1.6.0",
     "electron-updater": "^6.3.0",
     "jsmediatags": "^3.9.7",
+    "localtunnel": "^2.0.2",
+    "qrcode": "^1.5.4",
     "simple-ytdl-core": "^1.2.2",
     "youtubei.js": "^18.3.0"
   }

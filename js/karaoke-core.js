@@ -1,354 +1,169 @@
-/* Karaoke: vista, seleccion de cancion, letra sincronizada */
-let _karaActive = false;
-let _karaSel = null,
-  _karaTgl = 'all';
+/* Karaoke: letras (varias fuentes), romaji, traducción y aviso "canción no detectada".
+   La pantalla está en view-karaoke.js. */
+let _karaActive = false, _karaSel = null; // boot.js los reinicia al salir
+const KR = { t: null, lines: [], synced: false, ro: [], tr: [], lang: 'es', modo: 'or', manual: false, estado: '', msg: '', tok: 0, nd: false };
+const kKey = t => String((t && (t.id || (t.p && t.p[0]))) || (t && t.t) || '');
+const kEnc = encodeURIComponent;
 
-window._karaOriginalHTML = '';
+/* ---- Idioma: el del editor (t.lang) y, si no sirve, se detecta por la letra ---- */
+function kLang(t, txt) {
+  const h = String((t && t.lang) || '').toLowerCase();
+  if (/^(ja|jp)|jap/.test(h)) return 'ja';
+  if (/^ko|core/.test(h)) return 'ko';
+  if (/^zh|chin/.test(h)) return 'zh';
+  if (/^es|espa/.test(h)) return 'es';
+  if (/^en|ingl/.test(h)) return 'en';
+  if (/[\u3040-\u30ff]/.test(txt)) return 'ja';
+  if (/[\uac00-\ud7af]/.test(txt)) return 'ko';
+  if (/[\u4e00-\u9fff]/.test(txt)) return 'zh';
+  if (/[\u0400-\u04ff]/.test(txt)) return 'ru';
+  return (/[áéíóúñ¿¡]/i.test(txt) || /\b(el|la|que|de|y|en|te|me|tu|mi|con|por)\b/i.test(txt)) ? 'es' : 'en';
+}
+function kModos(lang) {
+  if (lang === 'es') return [['or', 'Original']];
+  if (lang === 'ja') return [['all', 'Todo'], ['ro', 'Romaji'], ['tr', 'Español'], ['or', 'Original']];
+  return [['all', 'Todo'], ['tr', 'Español'], ['or', 'Original']];
+}
+const kModoDef = lang => lang === 'es' ? 'or' : (lang === 'ja' ? 'ro' : 'tr');
 
-window.filtrarKaraoke = function(val) {
-  const lista = document.getElementById('k-list');
-  if (!lista) return;
-  
-  // Si no hemos guardado el HTML original, lo hacemos ahora
-  if (!window._karaOriginalHTML) {
-    window._karaOriginalHTML = lista.innerHTML;
+/* ---- Fuentes de letras (0-2 automáticas; 3 = "otra biblioteca") ---- */
+const kWeb = async u => { try { return (window.onda && onda.webJson) ? await onda.webJson(u) : null; } catch (e) { return null; } };
+function kPickLrc(j) {
+  if (!Array.isArray(j)) return null;
+  const s = j.find(x => x && x.syncedLyrics), p = j.find(x => x && x.plainLyrics);
+  if (s) return { synced: s.syncedLyrics, plain: s.plainLyrics || '' };
+  return p ? { synced: '', plain: p.plainLyrics } : null;
+}
+const KF = [
+  async n => { if (!window.onda || !onda.fetchLyrics) return null; const r = await onda.fetchLyrics(n.t, n.a, n.al, A.duration || 0); return r && (r.synced || r.plain) ? { synced: r.synced || '', plain: r.plain || '' } : null; },
+  async n => kPickLrc(await kWeb('https://lrclib.net/api/search?track_name=' + kEnc(n.t) + (n.a ? '&artist_name=' + kEnc(n.a) : ''))),
+  async n => kPickLrc(await kWeb('https://lrclib.net/api/search?q=' + kEnc((n.t + ' ' + n.a).trim()))),
+  async n => { if (!n.a) return null; const j = await kWeb('https://api.lyrics.ovh/v1/' + kEnc(n.a) + '/' + kEnc(n.t)); return j && j.lyrics ? { synced: '', plain: String(j.lyrics) } : null; }
+];
+async function kBuscar(t, op, cancel) {
+  op = op || {};
+  const c = window.ondaCleanTrack ? ondaCleanTrack(t) : { t: t.t, a: t.a };
+  let a = op.a != null ? op.a : c.a;
+  if (/desconocid|unknown/i.test(a)) a = '';
+  const n = { t: op.t || c.t, a, al: (t.al && !/desconocid|unknown/i.test(t.al)) ? t.al : '' };
+  const fin = op.hasta != null ? op.hasta : KF.length;
+  for (let i = op.desde || 0; i < fin; i++) {
+    if (cancel()) return null;
+    try { const r = await KF[i](n); if (cancel()) return null; if (r && (r.synced || r.plain)) return r; }
+    catch (e) { console.error('[karaoke] fuente ' + i, e); }
   }
+  return null;
+}
 
-  const v = String(val).toLowerCase().trim();
-  if (v === '') {
-    lista.innerHTML = window._karaOriginalHTML;
-  } else {
-    // Reconstruimos la lista solo con los elementos que coinciden
-    const temp = document.createElement('div');
-    temp.innerHTML = window._karaOriginalHTML;
-    const rows = temp.querySelectorAll('.krow');
-    
-    let htmlFiltrado = '';
-    rows.forEach(r => {
-      if (r.textContent.toLowerCase().includes(v)) {
-        htmlFiltrado += r.outerHTML;
+/* ---- Carga ---- */
+async function kCargar(t, op) {
+  const my = ++KR.tok;
+  KR.t = t; KR.lines = []; KR.ro = []; KR.tr = []; KR.idx = -1; KR.estado = 'buscando'; KR.msg = '';
+  kPintarLetra();
+  let r = null;
+  try { r = await kBuscar(t, op || { hasta: 3 }, () => my !== KR.tok); } catch (e) { console.error('[karaoke] buscar', e); }
+  if (my !== KR.tok) return;
+  let L = [];
+  if (r) {
+    L = parseLrc(r.synced || '');
+    KR.synced = L.length > 0;
+    if (!L.length) L = String(r.plain || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).map((x, i) => ({ t: i, text: x }));
+  }
+  if (!L.length) { KR.estado = 'no'; kPintarLetra(); if (!KR.nd) { KR.nd = true; kNoDetectada(t); } return; }
+  KR.lines = L;
+  KR.lang = kLang(t, L.map(l => l.text).join(' '));
+  const ms = kModos(KR.lang).map(x => x[0]);
+  if (!(KR.manual && ms.includes(KR.modo))) KR.modo = kModoDef(KR.lang);
+  KR.estado = 'ok';
+  kPintarLetra();
+  kPrep(my);
+}
+async function kPrep(my) {
+  const need = { ro: KR.lang === 'ja' && /^(all|ro)$/.test(KR.modo), tr: KR.lang !== 'es' && /^(all|ro|tr)$/.test(KR.modo) };
+  for (const k of ['ro', 'tr']) {
+    if (!need[k] || KR[k].length || !window.onda) continue;
+    KR.msg = k === 'ro' ? 'Preparando romaji…' : 'Traduciendo…';
+    kPintarMsg();
+    const out = new Array(KR.lines.length).fill('');
+    let i = 0;
+    const w = async () => {
+      while (i < KR.lines.length && my === KR.tok) {
+        const j = i++, tx = KR.lines[j].text;
+        try { out[j] = (k === 'ro' ? await onda.transliterate(tx, 'ja') : await onda.translate(tx, 'es')) || ''; } catch (e) { out[j] = ''; }
       }
-    });
-    
-    if (htmlFiltrado === '') {
-      lista.innerHTML = '<p style="color:var(--dim);font-size:12px;padding:8px">Sin resultados</p>';
-    } else {
-      lista.innerHTML = htmlFiltrado;
-    }
+    };
+    await Promise.all([w(), w(), w(), w()]);
+    if (my !== KR.tok) return;
+    KR[k] = out;
   }
-
-  // Abrir la lista si hay texto
-  if (v !== '') {
-    lista.classList.remove('hide');
-    const ext = document.getElementById('k-ext');
-    if (ext) ext.querySelector('span').textContent = '▼ Canciones';
-  }
-};
-
-function initKaraView() {
-  const kara = document.getElementById('kara');
-  if (!kara) return;
-  _karaActive = false;
-  _karaSel = null;
-  kara.classList.remove('active', 'side-open', 'with-vid', 'vid-on');
-  kara.classList.toggle('offline', !navigator.onLine);
-
-  const l = document.getElementById('k-list');
-  if (l) {
-    l.innerHTML =
-      lib
-        .map(
-          t =>
-            `<div class="krow${_karaSel === t.id ? ' on' : ''}" data-id="${t.id}"><div class="kth"${t.cv ? ` style="background:center/cover url('${t.cv}')"` : ''}>${t.cv ? '' : esc((t.t[0] || '♪').toUpperCase())}</div><div class="kinfo"><b>${esc(t.t)}</b><span>${esc(t.a)}</span></div></div>`
-        )
-        .join('') || '<p style="color:var(--dim);font-size:12px;padding:8px">Sin canciones</p>';
-
-    // Guardar el HTML original recién generado
-    window._karaOriginalHTML = l.innerHTML;
-
-    // Restaurar el valor del buscador y aplicar el filtro
-    const searchInput = document.getElementById('k-search');
-    if (searchInput) {
-      searchInput.value = ''; // Limpiamos al entrar de nuevo
-      window.filtrarKaraoke('');
-    }
-
-    l.onclick = e => {
-      const r = e.target.closest('[data-id]');
-      if (r) karaPick(r.dataset.id);
-    };
-  }
-
-  const ext = document.getElementById('k-ext');
-  if (ext)
-    ext.onclick = () => {
-      const kl = document.getElementById('k-list');
-      if (!kl) return;
-      kl.classList.toggle('hide');
-      ext.querySelector('span').textContent = (kl.classList.contains('hide') ? '▶ ' : '▼ ') + 'Canciones';
-    };
-  const st = document.getElementById('k-start');
-  if (st)
-    st.onclick = () => {
-      const kl = document.getElementById('k-list');
-      if (!kl) return;
-      const ext = document.getElementById('k-ext');
-      kl.classList.remove('hide');
-      if (ext) ext.querySelector('span').textContent = '▼ Canciones';
-      kara.classList.add('side-open');
-    };
-  const tg = document.getElementById('k-toggles');
-  if (tg)
-    tg.onclick = e => {
-    window._karaManualTgl = true; // El usuario tomó el control
-      const b = e.target.closest('[data-kt]');
-      if (!b) return;
-      _karaTgl = b.dataset.kt;
-      tg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      applyTgl();
-    };
-  const vl = document.getElementById('kv-load');
-  if (vl) vl.onclick = () => loadKaraVid();
-  const vs = document.getElementById('kv-search');
-  if (vs)
-    vs.onclick = () => {
-      if (!_karaSel) return;
-      const t = lib.find(x => x.id === _karaSel);
-      if (!t) return;
-      const q2 = encodeURIComponent(t.t + ' ' + t.a + ' karaoke');
-      const u = 'https://www.youtube.com/results?search_query=' + q2;
-      if (window.onda && onda.openExternal) onda.openExternal(u);
-      else window.open(u, '_blank');
-    };
-  const bpp = document.getElementById('kbar-pp');
-  if (bpp) bpp.onclick = () => tog();
-  const bpv = document.getElementById('kbar-pv');
-  if (bpv) bpv.onclick = () => prev();
-  const bnx = document.getElementById('kbar-nx');
-  if (bnx) bnx.onclick = () => next(0);
-  // Movimiento de botones anulado para evitar que se aplasten
-  const _vw = () => localStorage.getItem('onda.kara.vid') === '1',
-    _rv = () => {
-      const kk = document.getElementById('kara');
-      if (!kk) return;
-      const on = _vw() && navigator.onLine;
-      kk.classList.toggle('with-vid', on);
-      kk.classList.toggle('offline', !navigator.onLine);
-      const bb = document.getElementById('kbar-vid');
-      if (bb) bb.classList.toggle('on', on);
-    };
-  const vb = document.getElementById('kbar-vid');
-  if (vb)
-    vb.onclick = () => {
-      if (!navigator.onLine) {
-        window.showAlert('Sin conexion: el video no esta disponible');
-        return;
-      }
-      localStorage.setItem('onda.kara.vid', _vw() ? '0' : '1');
-      _rv();
-    };
-  addEventListener('online', _rv);
-  addEventListener('offline', _rv);
-  _rv();
-  syncKaraBar();
+  KR.msg = '';
+  kPintarLetra();
 }
 
-function syncKaraBar() {
-  const t = q[ci];
-  const ti = document.getElementById('kbar-title');
-  if (ti) ti.textContent = t ? t.t + ' — ' + t.a : '-';
-  const bp = document.getElementById('kbar-pp');
-  if (bp) bp.textContent = A.paused ? '▶' : '⏸';
-}
-
-function karaPick(id) {
-  _karaSel = id;
-  const t = lib.find(x => x.id === id);
-  if (!t) return;
-  const kara = document.getElementById('kara');
-  if (kara) {
-    kara.classList.add('active');
-    kara.classList.add('side-open');
-  }
-  const k = document.getElementById('k-know'),
-    cv = document.getElementById('k-cov'),
-    ti = document.getElementById('k-title'),
-    ar = document.getElementById('k-artist'),
-    body = document.getElementById('k-body');
-  if (k) k.classList.add('on');
-  if (cv) cv.style.setProperty('--kcv', t.cv ? 'url(' + t.cv + ')' : 'none');
-  if (ti) ti.textContent = t.t;
-  if (ar) ar.textContent = t.a + ' — ' + t.al;
-  if (body) body.innerHTML = '<div class="kempty">Cargando letra...</div>';
-  q = [t];
-  ci = 0;
-  const kl = document.getElementById('k-list');
-  if (kl) kl.classList.add('hide');
-  const ke = document.getElementById('k-ext');
-  if (ke) ke.querySelector('span').textContent = '▶ Canciones';
-  try {
-    playAt(0, true);
-  } catch (_) {}
-  prepareKaraoke().then(() => {
-    document.querySelectorAll('#k-list .krow').forEach(r => r.classList.toggle('on', r.dataset.id === id));
-    syncKaraBar();
-  });
-}
-
-function applyTgl() {
-  const body = document.getElementById('k-body');
-  if (!body) return;
-  body.querySelectorAll('.kln').forEach(ln => {
-    ln.classList.remove('hide-ro', 'hide-tr', 'hide-or');
-    
-    if (_karaTgl === 'ro') {
-      ln.classList.add('hide-or'); // Muestra Romaji + Español
-    } else if (_karaTgl === 'tr') {
-      ln.classList.add('hide-ro'); // Muestra Español + Original
-    } else if (_karaTgl === 'or') {
-      ln.classList.add('hide-ro', 'hide-tr'); // Solo Original
-    }
-    // 'all' muestra todo
-  });
-}
-
-function loadKaraVid() {
-  const inp = document.getElementById('kv-url'),
-    fr = document.getElementById('kv-frame'),
-    kr = document.getElementById('kara');
-  if (!inp || !fr) return;
-  let u = (inp.value || '').trim();
-  if (!u) return;
-  const m = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/))([A-Za-z0-9_-]{6,})/);
-  if (m) u = 'https://www.youtube.com/embed/' + m[1];
-  fr.innerHTML = '<iframe src="' + u + '" allow="autoplay; encrypted-media" allowfullscreen></iframe>';
-  fr.classList.add('on');
-  localStorage.setItem('onda.kara.vid', '1');
-  const _b = document.getElementById('kbar-vid');
-  if (_b) _b.classList.add('on');
-  if (kr) {
-    const on = navigator.onLine;
-    kr.classList.toggle('with-vid', on);
-    kr.classList.toggle('offline', !on);
-  }
-}
-
-async function prepareKaraoke() {
-  if (!q[ci]) return window.showAlert('Reproduce una canción primero');
-  const body = document.getElementById('k-body');
-  if (!body) return;
-  body.innerHTML = '<div class="kempty">Cargando letra...</div>';
-  try {
-    if (!_lyr.length || _lyrKey !== (q[ci].id || (q[ci].p && q[ci].p[0]))) {
-      await loadLyr(q[ci], null);
-    }
-    if (!_lyr.length) {
-      body.innerHTML = '<div class="kempty">No se encontró letra para esta canción</div>';
-      return;
-    }
-    _karaActive = true;
-    if (!_lyrRo.length) {
-      body.innerHTML = '<div class="kempty">Preparando romaji...</div>';
-      let i = 0,
-        a = new Array(_lyr.length);
-      const w = async () => {
-        while (i < _lyr.length) {
-          const k = i++;
-          try {
-            a[k] = (await window.onda.transliterate(_lyr[k].text, 'ja')) || '';
-          } catch (e) {
-            a[k] = '';
-          }
-        }
-      };
-      await Promise.all([w(), w(), w(), w()]);
-      _lyrRo = a;
-    }
-    if (!_lyrTr.length) {
-      body.innerHTML = '<div class="kempty">Traduciendo...</div>';
-      let i = 0,
-        a = new Array(_lyr.length);
-      const w = async () => {
-        while (i < _lyr.length) {
-          const k = i++;
-          try {
-            const t = await window.onda.translate(_lyr[k].text, 'es');
-            a[k] = { t: _lyr[k].t, text: t || _lyr[k].text };
-          } catch (e) {
-            a[k] = { t: _lyr[k].t, text: _lyr[k].text };
-          }
-        }
-      };
-      await Promise.all([w(), w(), w(), w()]);
-      _lyrTr = a;
-    }
-    
-  // DETECCIÓN DE IDIOMA: Si hay japonés, activar Romaji u Original por defecto
-  if (!window._karaLangChecked) {
-    window._karaLangChecked = true;
-    const hasJP = /[\u3040-\u30ff\u4e00-\u9fff]/.test(_lyr.map(l => l.text).join(' '));
-    if (hasJP && _karaTgl === 'all') {
-      _karaTgl = 'ro'; // Por defecto Romaji para japonés
-      const tg = document.getElementById('k-toggles');
-      if (tg) {
-        tg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.kt === 'ro'));
-      }
-      applyTgl();
-    }
-  }
-  
-  // DETECCIÓN DE IDIOMA
-  const fullText = _lyr.map(l => l.text).join(' ');
-  const hasJP = /[\u3040-\u30ff\u4e00-\u9fff]/.test(fullText);
-  const tg = document.getElementById('k-toggles');
-  
+/* ---- Pintar letra ---- */
+function kPintarMsg() { const m = document.getElementById('k3-msg'); if (m) m.textContent = KR.msg; }
+function kPintarLetra() {
+  const ls = document.getElementById('k3-ls'), tg = document.getElementById('k3-tg');
+  if (!ls) return;
+  const ra = document.getElementById('k3'); if (ra) ra.dataset.modo = KR.modo;
   if (tg) {
-    const btnRo = tg.querySelector('[data-kt="ro"]');
-    // Si NO es japonés, ocultamos el botón Romaji
-    if (btnRo) btnRo.style.display = hasJP ? '' : 'none';
-    
-    // Si el usuario no ha cambiado el modo manualmente en esta canción
-    if (!window._karaManualTgl) {
-      if (hasJP) {
-        _karaTgl = 'ro'; // Japonés -> Romaji + Español
-      } else {
-        _karaTgl = 'tr'; // Inglés/Otro -> Español + Original
-      }
-    }
-    
-    // Actualizar la interfaz de los botones
-    tg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.kt === _karaTgl));
+    const ms = KR.estado === 'ok' ? kModos(KR.lang) : [];
+    tg.innerHTML = ms.length > 1 ? ms.map(m => '<button data-k3="tg" data-m="' + m[0] + '" class="' + (m[0] === KR.modo ? 'on' : '') + '">' + m[1] + '</button>').join('') : '';
   }
-  applyTgl();
-  renderKaraoke();
-  } catch (e) {
-    body.innerHTML = '<div class="kempty">Error: ' + esc((e && e.message) || e) + '</div>';
-  }
+  if (KR.estado === 'buscando') { ls.innerHTML = '<div class="k3-m"><p>Buscando letra…</p><button data-k3="cancelbus">Cancelar</button></div>'; return; }
+  if (KR.estado === 'no') { ls.innerHTML = '<div class="k3-m"><p>Sin letra. La música sigue sonando.</p><button data-k3="nd">Buscar otra vez</button></div>'; return; }
+  if (KR.estado !== 'ok') { ls.innerHTML = '<div class="k3-m"><p>Elige una canción</p></div>'; return; }
+  ls.innerHTML = (KR.msg ? '<div class="k3-pm" id="k3-msg">' + esc(KR.msg) + '</div>' : '')
+    + KR.lines.map((l, i) => '<div class="k3-ln" data-t="' + l.t + '"><span class="o">' + esc(l.text) + '</span><span class="r">' + esc(KR.ro[i] || '') + '</span><span class="e">' + esc(KR.lang === 'es' ? '' : (KR.tr[i] || '')) + '</span></div>').join('');
+  KR.idx = -1; kTick();
 }
-
-function renderKaraoke() {
-  const body = document.getElementById('k-body');
-  const _k = document.getElementById('kara');
-  if (!body || !_karaActive || !(_k && _k.classList.contains('active')) || !_lyr.length) return;
+function kTick() {
+  if (view !== 'karaoke' || KR.estado !== 'ok' || !KR.synced) return;
+  const ct = A.currentTime;
   let idx = -1;
-  for (let i = 0; i < _lyr.length; i++) {
-    if (_lyr[i].t <= A.currentTime) idx = i;
-    else break;
-  }
-  if (body.dataset.idx == String(idx) && body.dataset.rendered) return;
-  body.dataset.idx = String(idx);
-  body.dataset.rendered = '1';
-  body.innerHTML = _lyr
-    .map((l, i) => {
-      const ro = _lyrRo[i] || '';
-      const tr = (_lyrTr[i] && _lyrTr[i].text) || '';
-      return `<div class="kln${i === idx ? ' now' : ''}" data-t="${l.t}"><div class="kro">${esc(ro)}</div><div class="ktr">${esc(tr)}</div><div class="kor">${esc(l.text)}</div></div>`;
-    })
-    .join('');
-  body.onclick = e => {
-    const ln = e.target.closest('[data-t]');
-    if (ln && isFinite(A.duration)) A.currentTime = parseFloat(ln.dataset.t);
+  for (let i = 0; i < KR.lines.length; i++) { if (KR.lines[i].t <= ct) idx = i; else break; }
+  if (idx === KR.idx) return;
+  KR.idx = idx;
+  const ls = document.getElementById('k3-ls'); if (!ls) return;
+  const ln = ls.querySelectorAll('.k3-ln');
+  ln.forEach((el, i) => el.classList.toggle('now', i === idx));
+  if (ln[idx]) ln[idx].scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+const renderKaraoke = () => kTick(); // lo llama player.js
+const syncKaraBar = () => { if (typeof kSync === 'function') kSync(); };
+
+/* ---- Cambio de canción ---- */
+function kCambio() {
+  if (view !== 'karaoke') return;
+  const t = ci >= 0 ? q[ci] : null;
+  if (t === KR.t && KR.estado) return;
+  KR.tok++; KR.nd = false;
+  if (!t) { KR.t = null; KR.estado = ''; KR.lines = []; kPintarLetra(); return; }
+  kCargar(t, { hasta: 3 });
+}
+['loadedmetadata', 'play', 'emptied'].forEach(ev => A.addEventListener(ev, kCambio));
+A.addEventListener('timeupdate', kTick);
+
+/* ---- Aviso "canción no detectada" ---- */
+function kNoDetectada(t) {
+  const old = document.getElementById('k3-nd'); if (old) old.remove();
+  const c = window.ondaCleanTrack ? ondaCleanTrack(t) : { t: t.t, a: t.a };
+  const d = document.createElement('dialog');
+  d.id = 'k3-nd';
+  d.innerHTML = '<h2>Canción no detectada</h2><p style="color:var(--dim);font-size:13px;margin:6px 0 12px">No encontré la letra. Cambia el nombre, busca en otra biblioteca o cancela.</p>'
+    + '<input id="k3-nt" placeholder="Título" value="' + esc(c.t) + '"><input id="k3-na" placeholder="Artista" value="' + esc(/desconocid/i.test(c.a) ? '' : c.a) + '">'
+    + '<div class="pre" style="justify-content:center;margin-top:12px"><button class="chip ed-ok" data-r="n">Buscar</button><button class="chip" data-r="o">Otra biblioteca</button><button class="chip" data-r="c">Cancelar</button></div>';
+  document.body.appendChild(d);
+  let fin = false;
+  const cerrar = r => {
+    if (fin) return; fin = true;
+    const nt = d.querySelector('#k3-nt').value.trim(), na = d.querySelector('#k3-na').value.trim();
+    try { d.close(); } catch (e) {} d.remove();
+    if (r === 'n' && nt) { KR.nd = true; kCargar(t, { t: nt, a: na }); }
+    else if (r === 'o' && nt) { KR.nd = true; kCargar(t, { t: nt, a: na, desde: 3 }); }
+    /* cancelar: vale solo esta vez, la música sigue sin letra */
   };
-  const n = body.querySelector('.kln.now');
-  if (n) n.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  d.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) cerrar(b.dataset.r); });
+  d.addEventListener('cancel', () => cerrar('c'));
+  d.showModal();
 }

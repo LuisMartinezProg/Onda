@@ -1,0 +1,21 @@
+﻿[OK   ] css\splash.css existe
+[OK   ] js\splash.js existe
+[OK   ] index.html enlaza el splash
+[OK   ] js\scan.js (sin usar) quitado
+[OK   ] package.json: instalador con nombre fijo
+[OK   ] edit.js sin la palabra "versión"
+[OK   ] updater.js sin número de versión en el aviso
+[OK   ] compilar-instalador.bat al día y sin el paréntesis problemático
+[OK   ] actualizar-onda.bat sin la palabra "versión"
+[OK   ] icon.ico e icon.png presentes
+COPIA COMPLETA: C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\fase10-aplicada-20261127-153131
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : _muerto
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : limpiar-paso3.bat
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : limpiar-paso4.bat
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : limpiar-proyecto.bat
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : restaurar-compilador.bat
+MOVIDO a C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-respaldos-antiguos\scripts-viejos-20261127-153131 : gitignore.txt
+PAPELERA: 0
+PAPELERA: pre
+PAPELERA: publicar-onda.bat
+

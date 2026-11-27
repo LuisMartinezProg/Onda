@@ -39,7 +39,7 @@ app.whenReady().then(() => {
       const r = await dialog.showMessageBox({
         type: 'info',
         title: 'Onda',
-        message: 'Hay una versi\u00f3n nueva de Onda (' + info.version + ')',
+        message: 'Hay una actualizaci\u00f3n nueva de Onda',
         detail: 'Ya est\u00e1 descargada. \u00bfQuieres reiniciar Onda ahora para instalarla? Si eliges "M\u00e1s tarde", se instalar\u00e1 sola la pr\u00f3xima vez que salgas de Onda.',
         buttons: ['Reiniciar ahora', 'M\u00e1s tarde'],
         defaultId: 0,

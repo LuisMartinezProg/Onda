@@ -1,0 +1,781 @@
+﻿=== ARCHIVO: css\base.css ===
+/* Variables, reset, fondo y botones base */
+:root{--h:330;--acc:hsl(var(--h) 90% 70%);--acc2:hsl(calc(var(--h) + 40) 95% 72%);--bg:#140e24;--bg2:#1f1538;--ink:#f6f1ff;--dim:rgba(246,241,255,.55);--gl:rgba(255,255,255,.07);--ed:rgba(255,255,255,.13);--fu:"Segoe UI Variable","Segoe UI",system-ui,sans-serif;--ft:"Yu Gothic UI","Meiryo UI","Segoe UI",system-ui,sans-serif}
+body.amo{--bg:#000;--bg2:#0a0a0f}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:radial-gradient(60% 40% at 10% 0,color-mix(in srgb,var(--acc) 30%,transparent),transparent 70%),radial-gradient(50% 40% at 100% 60%,color-mix(in srgb,var(--acc2) 22%,transparent),transparent 70%),linear-gradient(var(--bg2),var(--bg));background-attachment:fixed;color:var(--ink);font:400 14px var(--fu);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+
+/* ========================================================== */
+/* MODERN UI: Scrollbars, Inputs y Botones (Estilo App Nativa) */
+/* ========================================================== */
+
+/* 1. Scrollbars oscuras y elegantes (Adiós al blanco feo) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+/* 2. Inputs, Selects y Cajas de texto modernas */
+input, select, textarea {
+  outline: none !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--ink) !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--acc) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 20%, transparent) !important;
+}
+
+/* 3. Menús desplegables (Select) sin fondo blanco de Windows */
+select {
+  appearance: none !important;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px top 50% !important;
+  background-size: 10px auto !important;
+  padding-right: 32px !important;
+  cursor: pointer;
+}
+select option {
+  background: #1a1525 !important; /* Fondo oscuro para las opciones */
+  color: #fff !important;
+}
+
+/* 4. Botones con transiciones suaves */
+button {
+  transition: transform 0.1s ease, background 0.2s ease, border-color 0.2s ease !important;
+}
+button:active {
+  transform: scale(0.95) !important;
+}
+
+/* 5. Barras de progreso (Volumen y Canción) modernas */
+input[type=range] {
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--acc);
+  margin-top: -4px;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--acc);
+}
+
+/* 6. Videos del Karaoke con bordes redondeados y sombra */
+#k-video-holder webview, #kv-frame iframe {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+
+/* ========================================================== */
+/* ELIMINAR BORDES BLANCOS (FOCUS RING) Y ESTILIZAR INPUTS     */
+/* ========================================================== */
+
+/* Matar el anillo blanco de Windows/Chromium al hacer clic */
+*:focus, *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Estilo para el selector de archivos (Añadir carpeta, Imagen, etc.) */
+input[type="file"] {
+  color: var(--dim) !important;
+  padding: 8px !important;
+}
+input[type="file"]::file-selector-button {
+  background: var(--gl) !important;
+  border: 1px solid var(--ed) !important;
+  color: var(--ink) !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  margin-right: 12px;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--acc) !important;
+  color: #000 !important;
+  border-color: var(--acc) !important;
+}
+
+/* Estilo para el selector de color */
+input[type="color"] {
+  padding: 2px !important;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  border-radius: 10px !important;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 8px;
+}
+
+
+/* ========================================================== */
+/* FORZAR TIPOGRAFÍA GLOBAL (Ignorar reglas anteriores)       */
+/* ========================================================== */
+html, body, div, span, h1, h2, h3, p, a, b, strong, button, input, select, textarea, label, option {
+  font-family: var(--ft), sans-serif !important;
+}
+
+
+/* ========================================================== */
+/* GLOW REACTIVO EN LOS BORDES (Se activa en Ajustes)         */
+/* ========================================================== */
+#edge-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0; /* Oculto por defecto en toda la app */
+  transition: opacity 0.5s ease;
+  box-shadow: inset 0 0 calc(20px + var(--beat, 0) * 80px) var(--song-acc, transparent);
+}
+
+
+/* ========================================================== */
+/* FONDO TINTADO CON EL COLOR DEL BANNER                      */
+/* ========================================================== */
+body {
+  background: 
+    radial-gradient(60% 40% at 10% 0%, color-mix(in srgb, var(--acc) 25%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 100% 60%, color-mix(in srgb, var(--acc2) 18%, transparent), transparent 70%),
+    linear-gradient(var(--bg2), var(--bg)) !important;
+  background-attachment: fixed !important;
+}
+=== FIN: css\base.css ===
+=== ARCHIVO: css\layout.css ===
+/* Rejilla principal: barra lateral, main, buscador superior, lista #v */
+#app{display:grid;grid-template-columns:210px 1fr;height:100%}
+.side{padding:20px 12px;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--ed);background:rgba(0,0,0,.18)}
+.side h1{font:900 26px var(--ft);padding:0 10px 14px;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.side button{text-align:left;padding:10px 12px;border-radius:12px;color:var(--dim);font-weight:600;transition:background .2s,color .2s}
+.side button:hover{background:var(--gl)}.side button.on{background:var(--gl);color:var(--ink);box-shadow:inset 3px 0 var(--acc)}
+.side .add{margin-top:auto;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#26123f;font-weight:800;text-align:center}
+#st{font-size:12px;color:var(--dim);padding:8px 10px}
+main{display:grid;grid-template-rows:var(--bnh,0px) 1fr;min-height:0;position:relative;transition:grid-template-rows .35s cubic-bezier(.2,.8,.2,1)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 0;min-height:0;overflow:hidden}
+.wrap.np-on{grid-template-columns:minmax(0,1fr) 330px}
+.lcol{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#np{display:none}.wrap.np-on #np{display:flex}
+.top{display:flex;gap:10px;padding:18px 22px 8px}
+.top input,.top select{background:var(--gl);border:1px solid var(--ed);border-radius:99px;color:var(--ink);padding:10px 16px;font:inherit}
+.top input{flex:1}.top select option{color:#000}
+#v{flex:1;overflow-y:auto;padding:0 22px 20px;scrollbar-width:thin}
+
+=== FIN: css\layout.css ===
+=== ARCHIVO: css\library.css ===
+/* Filas de canciones, tarjetas/cuadricula, titulos */
+.row{display:grid;grid-template-columns:42px 1fr 1fr 34px;gap:12px;align-items:center;padding:7px 10px;border-radius:14px;cursor:pointer;content-visibility:auto;contain-intrinsic-size:auto 56px}
+.row:hover{background:var(--gl)}.row.pl{background:color-mix(in srgb,var(--acc) 18%,transparent)}
+.row b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row span{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;font:900 18px var(--ft);color:#26123f;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.fv{opacity:.35;font-size:17px}.fv.on{opacity:1;color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.card{padding:12px;border-radius:20px;background:var(--gl);border:1px solid var(--ed);cursor:pointer;transition:transform .25s}
+.card:hover{transform:translateY(-4px)}.card .th{width:100%;height:auto;aspect-ratio:1;border-radius:14px;font-size:44px;margin-bottom:10px}
+.card b,.card span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card span{color:var(--dim);font-size:12px}
+h2{font:900 22px var(--ft);margin:10px 0 14px}
+/* Boton borrar dentro del dialog Editar */
+.del-btn{color:#ff8a9a !important;border-color:#5a2330 !important;font-weight:600}
+.del-btn:hover{color:#fff !important;background:#a01830 !important;border-color:#c01a3a !important}
+
+/* ========================================================== */
+/* BUSCADOR CON CRISTAL TINTADO DEL COLOR DEL BANNER          */
+/* ========================================================== */
+
+/* Input principal: fondo del color del banner (15% de opacidad) */
+.top input[type="search"], #s {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(0, 0, 0, 0.3)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 99px !important;
+  color: var(--ink) !important;
+  padding: 12px 20px !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Al escribir: se ilumina más con el color del banner */
+.top input[type="search"]:focus, #s:focus {
+  background: color-mix(in srgb, var(--acc) 25%, rgba(0, 0, 0, 0.3)) !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 25%, transparent), inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  outline: none !important;
+}
+
+/* Selectores (Título, Todo) con el mismo efecto de cristal tintado */
+.top select {
+  background: color-mix(in srgb, var(--acc) 15%, rgba(0, 0, 0, 0.3)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, rgba(255, 255, 255, 0.1)) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+.top select:focus {
+  background: color-mix(in srgb, var(--acc) 25%, rgba(0, 0, 0, 0.3)) !important;
+  border-color: var(--acc) !important;
+}
+
+/* Mantener la X bonita y blanca */
+.top input[type="search"]::-webkit-search-cancel-button, #s::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' opacity='0.7'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>") no-repeat center;
+  background-size: contain;
+  cursor: pointer;
+}
+
+
+/* ========================================================== */
+/* BUSCADOR Y SELECTORES CON EFECTO CRISTAL REAL              */
+/* ========================================================== */
+
+/* Buscador principal: fondo más claro y brillante */
+.top input[type="search"], #s {
+  background: color-mix(in srgb, var(--acc) 30%, rgba(20, 15, 30, 0.7)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent) !important;
+  border-radius: 99px !important;
+  color: #fff !important;
+  padding: 12px 20px !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.2) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Brillo al hacer clic */
+.top input[type="search"]:focus, #s:focus {
+  background: color-mix(in srgb, var(--acc) 45%, rgba(20, 15, 30, 0.8)) !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 30%, transparent), inset 0 2px 6px rgba(0,0,0,0.4) !important;
+  outline: none !important;
+}
+
+/* Selectores (Título, Todo): mismo efecto cristal */
+.top select {
+  background: color-mix(in srgb, var(--acc) 30%, rgba(20, 15, 30, 0.7)) !important;
+  border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent) !important;
+  color: #fff !important;
+  border-radius: 99px !important;
+  padding: 12px 35px 12px 20px !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.2) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  /* Flecha blanca personalizada */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 15px top 50% !important;
+  background-size: 12px auto !important;
+}
+
+.top select:focus {
+  background: color-mix(in srgb, var(--acc) 45%, rgba(20, 15, 30, 0.8)) !important;
+  border-color: var(--acc) !important;
+  outline: none !important;
+}
+
+=== FIN: css\library.css ===
+=== ARCHIVO: css\controls.css ===
+/* Ecualizador, controles, presets, sliders */
+.eq{display:flex;gap:6px;height:190px;align-items:stretch;margin-bottom:6px}
+.eq label{flex:1;display:flex;flex-direction:column;align-items:center;font-size:11px;color:var(--dim);gap:6px}
+.eq input{
+  -webkit-appearance: none;
+  appearance: none;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  flex: 1;
+  width: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.eq input::-webkit-slider-runnable-track{
+  width: 6px;
+  height: 100%;
+  background: rgba(255,255,255,0.15);
+  border-radius: 99px;
+  margin: 0 auto;
+}
+.eq input::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--acc);
+  margin: 0 -5px; /* centrar en la pista */
+  box-shadow: 0 0 8px var(--acc);
+  cursor: pointer;
+}
+.ctl{display:grid;grid-template-columns:130px 1fr 50px;gap:10px;align-items:center;margin:12px 0}
+.pre{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.pre button,.chip{padding:8px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--ed)}
+input[type=range]{accent-color:var(--acc)}
+
+=== FIN: css\controls.css ===
+=== ARCHIVO: css\nowplaying.css ===
+/* Panel derecho: caratula, cola, botones, barra de progreso, media queries */
+.cv{background:center/cover var(--cv,none) no-repeat,linear-gradient(135deg,var(--acc),var(--acc2))}
+.now{display:flex;flex-direction:column;align-items:center;gap:0;width:100%;cursor:default}
+.now .cv{opacity:0;transform:scale(.94);max-height:0;margin:0;transition:opacity .35s ease,transform .35s ease,max-height .35s ease,margin .35s ease}
+.now.sh .cv{opacity:1;transform:scale(1);max-height:260px;margin-bottom:4px}
+.now.qopen .cv{opacity:0;transform:scale(.94);max-height:0;margin:0}
+.ibar{display:flex;gap:8px;justify-content:center;margin-top:6px}
+.ib{width:36px;height:36px;border-radius:50%;background:var(--gl);border:1px solid var(--ed);font-size:15px;color:var(--ink)}
+.ib.on{background:color-mix(in srgb,var(--acc) 30%,transparent);border-color:var(--acc)}
+.ib[data-i=fav].on{color:#ff5a7a}
+#ipn:empty{display:none}
+#ipn{width:100%;background:rgba(0,0,0,.18);border-radius:16px;padding:12px;margin-top:2px}
+#ipn .ctl{grid-template-columns:1fr;gap:4px;margin:0 0 10px}#ipn .ctl span{display:none}#ipn select{width:100%}
+#ipn .pre{justify-content:center}
+.qlist{display:flex;flex-direction:column;gap:2px;max-height:260px;overflow-y:auto}
+.qrow{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;font-size:12px;cursor:pointer}
+.qrow:hover{background:var(--gl)}.qrow.on{color:var(--acc);font-weight:700}
+.qrow span:first-child{color:var(--dim);width:18px}
+.qrow b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .al{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+.now b,.now span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.now span{color:var(--dim);font-size:12px}
+.mid{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.btns{display:flex;align-items:center;gap:12px}.btns button{width:34px;height:34px;border-radius:50%;font-size:16px}.btns .pp{width:48px;height:48px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#26123f;font-size:19px}
+.btns button.on{color:var(--acc)}
+.sk{display:grid;grid-template-columns:38px 1fr 38px;gap:8px;width:100%;font-size:11px;color:var(--dim);align-items:center}
+.vol{display:flex;gap:8px;justify-content:center;align-items:center}.vol input{width:110px}
+.wrap.np-on #np{flex-direction:column;align-items:center;gap:12px;padding:20px;overflow-y:auto;scrollbar-width:thin;border-left:1px solid var(--ed);background:rgba(10,6,20,.3);min-height:0;width:330px}
+#np .cv{width:min(100%,250px);aspect-ratio:1;border-radius:24px;box-shadow:0 20px 50px -15px color-mix(in srgb,var(--acc) 55%,transparent);animation:fl 6s ease-in-out infinite}
+body.pause #np .cv,body.eco #np .cv{animation:none}
+@keyframes fl{50%{transform:translateY(-6px) scale(1.01)}}
+#np h3{font:900 20px var(--ft);text-align:center}#np p{color:var(--dim);text-align:center;font-size:12px}
+#vz{width:100%;height:60px}
+@media(max-width:760px){#app{grid-template-columns:1fr}.side{grid-row:1;flex-direction:row;overflow-x:auto;padding:10px;border:0}.side h1,#st{display:none}.side button{white-space:nowrap}.side .add{margin:0 0 0 auto}main{grid-template-rows:60px 1fr}.wrap{grid-template-columns:1fr}#np{border-left:0;border-top:1px solid var(--ed)}.row{grid-template-columns:42px 1fr 34px 34px}.eq{height:150px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+
+/* ========================================================== */
+/* LAYOUT MEJORADO: Estilo reproductor unificado (tipo Spotify) */
+/* ========================================================== */
+.wrap.np-on #np {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;         /* NO scroll en el panel entero */
+  padding: 16px 16px 12px;
+  gap: 8px;
+  min-height: 0;
+}
+
+/* Caratula adaptable al alto de la ventana */
+#np .now { flex-shrink: 0; }
+#np .now .cv {
+  width: min(100%, 220px) !important;
+  max-height: 30vh !important;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px -12px color-mix(in srgb,var(--acc) 55%,transparent);
+}
+@media (max-height: 750px) {
+  #np .now .cv { width: min(100%, 160px) !important; max-height: 22vh !important; }
+}
+
+/* Titulo y artista */
+#bt { font-size: 15px; margin-top: 6px; }
+#ba { font-size: 11px; }
+
+/* Header de botones (Español / Original / Karaoke) */
+#lyr-hd { flex-shrink: 0; }
+
+/* Letra: este es el UNICO elemento que scrollea */
+#lyr {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  padding: 4px 0;
+}
+
+/* Visualizador compacto */
+#vz { flex-shrink: 0; height: 44px !important; }
+
+/* Controles (botones play, barra de progreso, volumen) */
+.mid { flex-shrink: 0; gap: 6px; }
+.btns .pp { width: 42px !important; height: 42px !important; font-size: 17px !important; }
+.btns button { width: 30px !important; height: 30px !important; font-size: 14px !important; }
+.sk { font-size: 10px; }
+.vol { display: none; }  /* Ocultar volumen: ahora vive en la barra izq o en ajustes */
+
+/* Barra de iconos (fav, cola, etc.) */
+.ibar { flex-shrink: 0; margin-top: 2px; gap: 6px; }
+.ib { width: 32px !important; height: 32px !important; font-size: 13px !important; }
+
+/* Panel de cola expandible */
+#ipn { flex-shrink: 0; max-height: 40vh; overflow-y: auto; margin-top: 0; }
+
+
+
+
+
+/* ========================================================== */
+/* ARREGLO DEFINITIVO DEL REPRODUCTOR (BOTONES Y LAYOUT)      */
+/* ========================================================== */
+
+/* Forzar al panel derecho a ser una columna estricta */
+.wrap.np-on #np {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding: 16px 16px 12px !important;
+  gap: 8px !important;
+  overflow: hidden !important; /* NO scroll global */
+}
+
+/* Carátula y título: tamaño fijo, no se encogen */
+#nw {
+  flex-shrink: 0 !important;
+}
+
+/* Los botones de la letra (Español/Original) tampoco se encogen */
+#lyr-hd {
+  flex-shrink: 0 !important;
+}
+
+/* El cuadro de la letra: ocupa todo el espacio disponible y hace scroll interno */
+#lyr {
+  flex: 1 1 0 !important;
+  min-height: 50px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  margin: 4px 0;
+}
+
+/* El visualizador de barras: tamaño fijo */
+#vz {
+  flex-shrink: 0 !important;
+  height: 48px !important;
+  margin-bottom: 4px;
+}
+
+/* Controles centrales (Play, Pause, etc.): tamaño garantizado */
+.mid {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
+
+/* Botones de reproducción */
+.btns {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 16px !important;
+  margin-bottom: 4px;
+}
+.btns button {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 16px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+.btns .pp {
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 20px !important;
+  background: var(--acc) !important;
+  color: #000 !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+}
+
+/* Barra de progreso */
+.sk {
+  width: 100% !important;
+  padding: 0 8px !important;
+}
+.vol {
+  display: flex !important;
+  width: 100% !important;
+  justify-content: center !important;
+  margin-top: 4px;
+}
+
+/* Iconos inferiores (Fav, Cola, etc.) */
+.ibar {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin-top: 6px !important;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.ib {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 14px !important;
+}
+
+
+/* ========================================================== */
+/* BARRA PARA BAJAR EN EL PANEL DERECHO (PORTADA Y LETRA)     */
+/* ========================================================== */
+
+/* Permitir el scroll vertical en todo el panel derecho */
+.wrap.np-on #np {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Quitar el scroll interno de la letra para que no salgan dos barras seguidas */
+.wrap.np-on #np #lyr {
+  overflow-y: visible !important;
+  flex: none !important;
+  max-height: none !important;
+}
+
+/* Asegurar que el visualizador y los controles no se estiren raro al hacer scroll */
+#np .mid, #np .ibar, #np #vz {
+  flex-shrink: 0 !important;
+}
+
+/* ========================================================== */
+/* Ocultar el boton "+" del reproductor (temporalmente)        */
+/* ========================================================== */
+#np .ib[data-i="add"] {
+  display: none !important;
+}
+=== FIN: css\nowplaying.css ===
+=== ARCHIVO: css\diseno.css ===
+/* Diseño base de Onda: dorado de marca, barras deslizantes, tarjetas con tinte y transiciones.
+   Se carga al final para ganar a los estilos anteriores. */
+:root{
+  --gold:#D4AF37;
+  --gold-soft:rgba(212,175,55,.22);
+  --gold-deep:#9c7f23;
+  --gold-light:#ecd06f;
+  --off:rgba(255,255,255,.18);
+  --card-tint:rgba(24,18,40,.62);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --t-fast:.15s;
+  --t-med:.28s;
+}
+
+/* El tono del tema cambia suave en vez de saltar */
+@property --h{syntax:'<number>';inherits:true;initial-value:330}
+html{transition:--h .3s ease}
+
+/* ---------- Barras deslizantes (canción, ajustes, sonido) ---------- */
+input[type=range].onda-rng{
+  -webkit-appearance:none !important;appearance:none !important;
+  height:20px !important;margin:0 !important;padding:0 !important;
+  background:transparent !important;border:0 !important;cursor:pointer;
+}
+input[type=range].onda-rng::-webkit-slider-runnable-track{
+  height:5px;border:0;border-radius:99px;
+  background:linear-gradient(to right,
+    var(--gold-deep) 0,
+    var(--gold) calc(var(--p,0%) * .7),
+    var(--gold-light) var(--p,0%),
+    var(--off) var(--p,0%),
+    var(--off) 100%);
+}
+input[type=range].onda-rng::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;margin-top:-4.5px;border:0;border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 0 0 var(--gold-soft),0 1px 4px rgba(0,0,0,.55);
+  transition:transform var(--t-fast) var(--ease),box-shadow var(--t-fast) var(--ease);
+}
+input[type=range].onda-rng:hover::-webkit-slider-thumb{transform:scale(1.2)}
+input[type=range].onda-rng:active::-webkit-slider-thumb{
+  transform:scale(1.4);
+  box-shadow:0 0 0 7px var(--gold-soft),0 1px 4px rgba(0,0,0,.55);
+}
+input[type=range].onda-rng:focus-visible::-webkit-slider-thumb{
+  box-shadow:0 0 0 5px var(--gold-soft),0 1px 4px rgba(0,0,0,.55);
+}
+
+/* ---------- Foco visible con teclado ---------- */
+html button:focus-visible{outline:2px solid var(--gold) !important;outline-offset:2px}
+
+/* ---------- Tarjeta con tinte gris (se aplica en Ajustes y otras pantallas) ---------- */
+.onda-card{
+  background:var(--card-tint);
+  border:1px solid var(--ed);
+  border-radius:18px;
+  padding:18px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:border-color var(--t-med) var(--ease),background var(--t-med) var(--ease);
+}
+.onda-card:hover{border-color:rgba(255,255,255,.22)}
+.onda-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start}
+
+/* ---------- Transiciones ---------- */
+@keyframes ondaIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes ondaPop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes ondaFade{from{opacity:0}to{opacity:1}}
+#v.v-in{animation:ondaIn var(--t-med) var(--ease)}
+dialog[open]{animation:ondaPop var(--t-med) var(--ease)}
+dialog[open]::backdrop{animation:ondaFade var(--t-med) ease}
+
+@media (prefers-reduced-motion:reduce){
+  #v.v-in,dialog[open],dialog[open]::backdrop{animation:none}
+  html{transition:none}
+}
+
+/* --- 1B: acento dorado fijo e iconos de linea --- */
+:root{--acc:var(--gold);--acc2:var(--gold-light)}
+svg[data-ic]{flex:none;vertical-align:-.15em;overflow:visible}
+.ic-i{display:inline-flex;align-items:center;vertical-align:middle}
+.side button svg[data-ic],.ibar .ib svg[data-ic],.fv svg[data-ic],.dl-chip svg[data-ic],.dl-btn svg[data-ic],.btns button:not(.pp) svg[data-ic]{color:var(--gold)}
+
+/* --- 2: canciones --- */
+.lhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:6px}
+.ltools{display:flex;gap:8px}
+.tbtn{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--card-tint);border:1px solid var(--ed);color:var(--gold);font-size:19px;flex:none}
+.tbtn:hover{border-color:var(--gold)}
+.tbtn.on{background:var(--gold-soft);border-color:var(--gold)}
+.tbtn[hidden]{display:none}
+.lcol{position:relative}
+.row{position:relative}
+.row .chk{display:none;position:absolute;left:10px;top:50%;margin-top:-21px;width:42px;height:42px;border-radius:10px;background:rgba(10,6,20,.6);border:2px solid var(--off);align-items:center;justify-content:center;color:transparent;z-index:1}
+body.sel-on .row .chk{display:flex}
+.row.sel{background:var(--gold-soft)}
+.row.sel .chk{background:var(--gold);border-color:var(--gold);color:#1a1525}
+.onda-new{font-style:normal;margin-left:8px;padding:2px 8px;border-radius:99px;background:var(--gold);color:#1a1525;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}
+.row.flash{animation:ondaFlash 1.4s var(--ease)}
+@keyframes ondaFlash{0%,60%{background:var(--gold-soft);box-shadow:0 0 0 2px var(--gold)}100%{box-shadow:0 0 0 0 transparent}}
+.fv.on svg[data-ic="heart"],.ib.on svg[data-ic="heart"]{fill:currentColor}
+#onda-menu{position:fixed;z-index:100000;min-width:240px;max-height:80vh;overflow-y:auto;padding:6px;background:#1b1230;border:1px solid var(--ed);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.6);animation:ondaPop var(--t-fast) var(--ease)}
+#onda-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border-radius:10px;text-align:left;color:var(--ink)}
+#onda-menu button:hover{background:var(--gl)}
+#onda-menu button svg{color:var(--gold);flex:none}
+#onda-menu .t{flex:1;min-width:0}
+#onda-menu small{display:block;color:var(--dim);font-size:11px;font-weight:400}
+#onda-menu button.sel b{color:var(--gold)}
+#onda-menu button.danger,#onda-menu button.danger svg{color:#ff8a9a}
+#onda-menu hr{border:0;border-top:1px solid var(--ed);margin:4px 6px}
+#onda-menu .mh{padding:6px 10px 4px;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+#onda-bulk{position:absolute;left:22px;right:22px;bottom:16px;z-index:20;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card-tint);border:1px solid var(--gold);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#onda-bulk[hidden]{display:none}
+#onda-bulk .bc{flex:1;font-weight:600}
+#onda-bulk button{padding:8px 12px;border-radius:99px;background:var(--gl);border:1px solid var(--ed);display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+#onda-bulk button svg{color:var(--gold)}
+#onda-bulk button:disabled{opacity:.4;cursor:default}
+body.sel-on #v{padding-bottom:90px}
+#onda-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1b1230;color:var(--ink);border:1px solid var(--gold);border-radius:99px;padding:9px 18px;font-weight:600;z-index:100001;opacity:0;pointer-events:none;transition:opacity .25s}
+#onda-toast.on{opacity:1}
+
+/* --- 3: editor de cancion y limpieza --- */
+#ed{width:min(94vw,560px)}
+.ed-top{display:flex;gap:16px;align-items:center;margin:6px 0 4px}
+.ed-cv{position:relative;flex:none;width:120px;height:120px;border-radius:16px;border:1px solid var(--ed);background:var(--card-tint) center/cover no-repeat;display:grid;place-items:center;overflow:hidden}
+.ed-cv span{font:900 40px var(--ft);color:var(--gold)}
+.ed-cvx{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(10,6,20,.75);border:1px solid var(--ed);display:inline-flex;align-items:center;justify-content:center;color:var(--ink);font-size:14px}
+.ed-cvbtns{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+dialog label.ed-file{display:inline-flex;align-items:center;gap:8px;margin:0;padding:8px 14px;border-radius:99px;background:var(--gl);border:1px solid var(--ed);color:var(--ink);font-size:14px;cursor:pointer}
+dialog label.ed-file:hover{border-color:var(--gold)}
+#e8{display:inline-flex;align-items:center;gap:8px}
+.ed-file svg,#e8 svg,#ed-go svg{color:var(--gold)}
+#ed-go{display:inline-flex;align-items:center;gap:6px}
+.ed-hint{color:var(--dim);font-size:11.5px;margin:2px 0 0}
+.ed-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ed-row2 select{width:100%}
+#ed-res{margin:10px 0;padding:12px;border:1px solid var(--ed);border-radius:14px;background:var(--card-tint)}
+#ed-res[hidden]{display:none}
+.ed-sbar{display:flex;gap:8px}
+.ed-sbar input{flex:1}
+#ed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+#ed-grid .rg-i{display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:12px;border:2px solid transparent;background:var(--gl);text-align:left;min-width:0}
+#ed-grid .rg-i img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+#ed-grid .rg-i span{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ed-grid .rg-i small{font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ed-grid .rg-i.sel{border-color:var(--gold)}
+.ed-msg{color:var(--dim);font-size:12.5px;margin:6px 0}
+.ed-url{display:flex;gap:8px;margin-top:8px}
+.ed-url input{flex:1}
+.ed-urlc{display:flex;justify-content:center;margin-top:10px}
+#ed-pick{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px;border-radius:12px;background:var(--gold-soft)}
+#ed-pick[hidden]{display:none}
+#ed-pick span{flex:1;font-weight:600}
+.ed-acts{justify-content:center;margin-top:18px}
+.chip.ed-ok{background:var(--gold);color:#1a1525 !important;border-color:var(--gold);font-weight:700}
+#onda-clean{width:min(94vw,560px)}
+#onda-clean .cl-list{max-height:240px;overflow-y:auto;margin:10px 0;padding:8px;border:1px solid var(--ed);border-radius:12px;background:var(--card-tint);font-size:12.5px}
+#onda-clean .cl-it{padding:5px 2px;border-bottom:1px solid var(--ed)}
+#onda-clean .cl-it:last-child{border:0}
+#onda-clean .cl-it s{color:var(--dim)}
+#onda-clean .cl-it b{color:var(--gold);font-weight:600}
+#onda-clean label.cl-chk{display:flex;flex-direction:row;align-items:center;gap:8px;margin:12px 0;font-size:13px;color:var(--ink)}
+.cl-bar{height:6px;border-radius:99px;background:var(--off);overflow:hidden;margin:14px 0}
+.cl-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+/* Botón de modos de reproducción (recorrido, aleatorio, aleatorio después, repetir una) */
+#sh,.btn-modo{position:relative}
+#sh svg,.btn-modo svg{display:block;margin:auto}
+#sh[data-modo="0"],.btn-modo[data-modo="0"]{opacity:.7}
+#sh.on,.btn-modo.on{color:var(--gold) !important}
+#sh[data-modo="2"],.btn-modo[data-modo="2"]{box-shadow:inset 0 -3px 0 var(--gold)}
+=== FIN: css\diseno.css ===
+=== ARCHIVO: css\ajustes-fase9.css ===
+/* Fase 9: Ajustes en tarjetas, en columnas cuando hay espacio */
+#v .set-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start;margin-top:8px}
+#v .set-cols>.onda-card{min-width:0}
+#v .set-cols .onda-card h3{margin:0 0 12px;font-size:13px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--gold);opacity:.9}
+#v .set-cols .set-sub{margin:16px 0 8px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+#v .set-cols .pre{flex-wrap:wrap}
+#onda-min-dlg select{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1px solid var(--ed);background:var(--gl);color:var(--ink);font:inherit}
+#onda-min-dlg select option{color:#000}
+=== FIN: css\ajustes-fase9.css ===
+

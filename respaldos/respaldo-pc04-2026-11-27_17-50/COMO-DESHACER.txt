@@ -1,0 +1,3 @@
+Para deshacer este cambio:
+Cierra Onda y copia main.js de esta carpeta sobre:
+C:\Users\Usuario\Documents\Clase Luis\App Musica\onda-app\main.js

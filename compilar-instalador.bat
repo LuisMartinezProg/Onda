@@ -24,6 +24,8 @@ echo [GUARDIA] Verificando archivos esenciales...
 set "MISSING=0"
 if not exist index.html ( echo ERROR: Falta index.html & set MISSING=1 )
 if not exist package.json ( echo ERROR: Falta package.json & set MISSING=1 )
+if not exist arranque.js ( echo ERROR: Falta arranque.js & set MISSING=1 )
+if not exist updater.js ( echo ERROR: Falta updater.js & set MISSING=1 )
 if not exist main.js ( echo ERROR: Falta main.js & set MISSING=1 )
 if not exist preload.js ( echo ERROR: Falta preload.js & set MISSING=1 )
 if not exist js\boot.js ( echo ERROR: Falta js\boot.js & set MISSING=1 )
@@ -72,6 +74,20 @@ if errorlevel 1 (
 echo   OK - preload.js es sintacticamente valido.
 echo.
 
+REM --- Validar sintaxis de updater.js ---
+node --check updater.js >nul 2>&1
+if errorlevel 1 (
+  echo.
+  echo ============================================
+  echo   ABORTADO: updater.js tiene errores de sintaxis
+  echo ============================================
+  echo ERROR: updater.js con errores de sintaxis >> "%LOG_FILE%"
+  pause
+  exit /b 1
+)
+echo   OK - updater.js es sintacticamente valido.
+echo.
+
 REM --- Verificar package.json valido ---
 echo [GUARDIA] Verificando package.json...
 node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))" >nul 2>&1
@@ -89,7 +105,7 @@ echo.
 
 REM --- Instalar dependencias si faltan ---
 if not exist node_modules (
-  echo [0/6] Instalando dependencias (primera vez)...
+  echo [0/6] Instalando dependencias, primera vez...
   call npm install
   if errorlevel 1 (
     echo ERROR: npm install fallo
@@ -99,17 +115,6 @@ if not exist node_modules (
   )
   echo.
 )
-
-REM --- Leer version ---
-for /f "tokens=2 delims=:," %%A in ('findstr /C:"\"version\"" package.json') do (
-  set "VERSION=%%A"
-  goto :version_found
-)
-:version_found
-set "VERSION=%VERSION: =%"
-set "VERSION=%VERSION:"=%"
-echo Version detectada: %VERSION%
-echo.
 
 REM ==========================================
 REM COMPILACION
@@ -151,9 +156,9 @@ echo.
 
 echo [5/6] Verificando resultado...
 set "SETUP="
-for %%F in ("dist\Onda Setup*.exe") do (
-  echo    Encontrado: %%F
-  set "SETUP=%%~fF"
+if exist "dist\Onda-Instalador.exe" (
+  echo    Encontrado: dist\Onda-Instalador.exe
+  set "SETUP=%~dp0dist\Onda-Instalador.exe"
 )
 if not defined SETUP (
   for %%F in (dist\Onda*.exe) do (
@@ -170,7 +175,7 @@ if not defined SETUP (
 echo.
 
 echo [6/6] Copiando instalador al Escritorio...
-powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $carpeta = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Onda-Instalador'; New-Item -ItemType Directory -Force -Path $carpeta | Out-Null; Copy-Item -LiteralPath '%SETUP%' -Destination (Join-Path $carpeta 'Onda-Setup.exe') -Force; Write-Host ('   Copiado a: ' + $carpeta + '\Onda-Setup.exe'); Start-Process $carpeta"
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; $carpeta = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Onda-Instalador'; New-Item -ItemType Directory -Force -Path $carpeta | Out-Null; Copy-Item -LiteralPath '%SETUP%' -Destination (Join-Path $carpeta 'Onda-Instalador.exe') -Force; Write-Host ('   Copiado a: ' + $carpeta + '\Onda-Instalador.exe'); Start-Process $carpeta"
 if errorlevel 1 (
   echo AVISO: No pude copiar al Escritorio. El instalador esta en la carpeta dist.
   echo AVISO: Fallo la copia al Escritorio >> "%LOG_FILE%"
@@ -180,8 +185,8 @@ if errorlevel 1 (
 echo.
 echo ============================================
 echo   LISTO.
-echo   Instalador: Onda Setup %VERSION%.exe
-echo   Copia para compartir: Escritorio\Onda-Instalador\Onda-Setup.exe
+echo   Instalador: dist\Onda-Instalador.exe
+echo   Copia para compartir: Escritorio\Onda-Instalador\Onda-Instalador.exe
 echo ============================================
 echo Compilacion exitosa: %date% %time% >> "%LOG_FILE%"
 echo.
